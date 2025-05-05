@@ -1,0 +1,208 @@
+.saj-h2-discharge-card {
+  padding: 16px;
+}
+
+.card-header {
+  font-size: 1.5rem;
+  font-weight: 500;
+  padding: 16px;
+  text-align: center;
+}
+
+.card-content {
+  padding: 16px;
+}
+
+.section {
+  margin-bottom: 20px;
+}
+
+.section-header {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-bottom: 10px;
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+}
+
+/* Discharge slots */
+.discharge-slots-table {
+  width: 100%;
+  margin-top: 10px;
+  font-size: 0.9rem;
+}
+
+.slot-row {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--divider-color);
+  padding: 8px 0;
+  gap: 8px;
+}
+
+.slot-row.invalid {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Slot elements */
+.slot-checkbox {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  margin-right: 8px;
+}
+
+.time-container, .power-container, .daymask-container {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.time-label, .power-label, .daymask-label {
+  margin-right: 4px;
+}
+
+/* Time selectors */
+.time-container {
+  margin-right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.time-label {
+  margin-right: 4px;
+  white-space: nowrap;
+}
+
+.time-select {
+  padding: 4px;
+  border-radius: 4px;
+  border: 1px solid var(--divider-color);
+  background-color: var(--card-background-color);
+  color: var(--primary-text-color);
+  width: 50px;
+  text-align: center;
+}
+
+/* Number inputs */
+.power-input, .daymask-input {
+  width: 60px;
+  padding: 4px;
+  border-radius: 4px;
+  border: 1px solid var(--divider-color);
+  background-color: var(--card-background-color);
+  color: var(--primary-text-color);
+  text-align: center;
+}
+
+.power-container {
+  margin-right: 8px;
+}
+
+/* Day mask dialog */
+.day-mask-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.dialog-content {
+  background-color: var(--card-background-color);
+  border-radius: 8px;
+  padding: 16px;
+  width: 80%;
+  max-width: 400px;
+}
+
+.dialog-header {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-bottom: 16px;
+  color: var(--primary-color);
+}
+
+.days-selection {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.day-checkbox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+.day-checkbox span {
+  margin-top: 4px;
+}
+
+.dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dialog-buttons button {
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+}
+
+#dialog-cancel {
+  background-color: var(--secondary-background-color);
+  color: var(--primary-text-color);
+}
+
+#dialog-save {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+/* Discharge toggle button */
+.discharge-toggle-button {
+  width: 100%;
+  padding: 12px;
+  border-radius: 4px;
+  border: none;
+  background-color: var(--primary-color);
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+
+.discharge-toggle-button.active {
+  background-color: var(--error-color);
+}
+
+.discharge-status {
+  text-align: center;
+}
+
+.discharge-status .active {
+  color: var(--success-color);
+  font-weight: 500;
+}
+
+.discharge-status .inactive {
+  color: var(--error-color);
+}
+
+.card-error {
+  padding: 16px;
+  color: var(--error-color);
+}

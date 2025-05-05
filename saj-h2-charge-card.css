@@ -22,19 +22,33 @@
   font-weight: 500;
   margin-bottom: 10px;
   color: var(--primary-color);
-}
-
-.time-inputs {
   display: flex;
-  justify-content: space-between;
-  gap: 16px;
+  align-items: center;
 }
 
-.time-input {
-  flex: 1;
+.power-value {
+  margin-left: 10px;
+  font-size: 1rem;
+  font-weight: normal;
+  color: var(--primary-text-color);
+}
+
+.time-row {
   display: flex;
   flex-direction: row;
   align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  width: 100%;
+}
+
+.time-label {
+  margin-right: 4px;
+  margin-left: 8px;
+}
+
+.time-label:first-child {
+  margin-left: 0;
 }
 
 .time-input label {
@@ -80,7 +94,8 @@
 
 .slider-value {
   min-width: 40px;
-  text-align: right;
+  text-align: left;
+  margin-right: 10px;
 }
 
 .days-selection {

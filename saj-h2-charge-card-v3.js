@@ -142,41 +142,31 @@ class SajH2ChargeCardV3 extends HTMLElement {
         <div class="card-content">
           <div class="section">
             <div class="section-header">Ladezeit</div>
-            <div class="time-inputs">
-              <div class="time-input">
-                <label>Start:</label>
-                <div class="time-selectors">
-                  <select id="charge-start-hour" class="time-select">
-                    ${this._generateHourOptions(chargeStart)}
-                  </select>
-                  <span>:</span>
-                  <select id="charge-start-minute" class="time-select">
-                    ${this._generateMinuteOptions(chargeStart)}
-                  </select>
-                </div>
-              </div>
-              <div class="time-input">
-                <label>Ende:</label>
-                <div class="time-selectors">
-                  <select id="charge-end-hour" class="time-select">
-                    ${this._generateHourOptions(chargeEnd)}
-                  </select>
-                  <span>:</span>
-                  <select id="charge-end-minute" class="time-select">
-                    ${this._generateMinuteOptions(chargeEnd)}
-                  </select>
-                </div>
-              </div>
+            <div class="time-row">
+              <span class="time-label">Start:</span>
+              <select id="charge-start-hour" class="time-select">
+                ${this._generateHourOptions(chargeStart)}
+              </select>
+              <span>:</span>
+              <select id="charge-start-minute" class="time-select">
+                ${this._generateMinuteOptions(chargeStart)}
+              </select>
+              
+              <span class="time-label">Ende:</span>
+              <select id="charge-end-hour" class="time-select">
+                ${this._generateHourOptions(chargeEnd)}
+              </select>
+              <span>:</span>
+              <select id="charge-end-minute" class="time-select">
+                ${this._generateMinuteOptions(chargeEnd)}
+              </select>
             </div>
           </div>
 
           <div class="section">
-            <div class="section-header">Ladeleistung</div>
-            <div class="power-slider">
-              <div class="slider-container">
-                <input type="range" id="charge-power" min="0" max="25" step="1" value="${chargePower}" />
-                <div class="slider-value">${chargePower}%</div>
-              </div>
+            <div class="section-header">Ladeleistung <span class="power-value">${chargePower}%</span></div>
+            <div class="slider-container">
+              <input type="range" id="charge-power" min="0" max="25" step="1" value="${chargePower}" />
             </div>
           </div>
 
@@ -272,7 +262,7 @@ class SajH2ChargeCardV3 extends HTMLElement {
     const chargePowerSlider = this._content.querySelector('#charge-power');
     chargePowerSlider.addEventListener('input', (e) => {
       const value = parseInt(e.target.value);
-      this._content.querySelector('.slider-value').textContent = `${value}%`;
+      this._content.querySelector('.power-value').textContent = `${value}%`;
     });
     
     chargePowerSlider.addEventListener('change', (e) => {
