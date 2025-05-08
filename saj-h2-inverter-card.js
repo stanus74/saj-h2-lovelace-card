@@ -130,7 +130,6 @@ class SajH2InverterCard extends HTMLElement {
     const chargePower = parseInt(power.state) || 0;
     const chargingEnabled = sw.state === 'on';
     const pendingWrite = sw.attributes && sw.attributes.pending_write === true;
-    const days = this._getDaysFromMask(chargeDayMask);
     
     return `
       <div class="section charging-section">
@@ -139,14 +138,7 @@ class SajH2InverterCard extends HTMLElement {
         <div class="subsection">
           <div class="subsection-header">Charging Time</div>
           <div class="time-row">
-            <span class="time-label">Start:</span>
-            <select id="charge-start-hour" class="time-select">${this._generateHourOptions(chargeStart)}</select>
-            <span>:</span>
-            <select id="charge-start-minute" class="time-select">${this._generateMinuteOptions(chargeStart)}</select>
-            <span class="time-label">End:</span>
-            <select id="charge-end-hour" class="time-select">${this._generateHourOptions(chargeEnd)}</select>
-            <span>:</span>
-            <select id="charge-end-minute" class="time-select">${this._generateMinuteOptions(chargeEnd)}</select>
+            ${this._renderTimeSelects('charge', chargeStart, chargeEnd)}
           </div>
         </div>
         
@@ -160,22 +152,13 @@ class SajH2InverterCard extends HTMLElement {
         <div class="subsection">
           <div class="subsection-header">Charging Days</div>
           <div class="days-selection">
-            ${['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].map(day => {
-              const short = day.slice(0,2);
-              return `<label class="day-checkbox"><input type="checkbox" id="day-${day}" ${days[day] ? 'checked' : ''} /><span>${short.charAt(0).toUpperCase()+short.charAt(1)}</span></label>`;
-            }).join('')}
+            ${this._renderDayCheckboxes('charge', chargeDayMask)}
           </div>
         </div>
         
         <div class="subsection">
           <div class="subsection-header">Charging Control</div>
-          <button class="control-button ${chargingEnabled ? 'active' : ''}" id="charging-toggle">
-            ${chargingEnabled ? 'Disable Charging' : 'Enable Charging'}
-          </button>
-          <div class="status-display">
-            Status: <span class="status-value ${chargingEnabled ? 'active' : 'inactive'}">${pendingWrite ? 'Pending write...' : (chargingEnabled ? 'Active' : 'Inactive')}</span>
-            ${pendingWrite ? '<div class="wait-message">Wait for modbus transfer</div>' : ''}
-          </div>
+          ${this._renderStatusButton(chargingEnabled, pendingWrite, 'charging')}
         </div>
       </div>
     `;
@@ -227,13 +210,7 @@ class SajH2InverterCard extends HTMLElement {
         
         <div class="subsection">
           <div class="subsection-header">Discharging Control</div>
-          <button class="control-button ${dischargingEnabled ? 'active' : ''}" id="discharging-toggle">
-            ${dischargingEnabled ? 'Disable Discharging' : 'Enable Discharging'}
-          </button>
-          <div class="status-display">
-            Status: <span class="status-value ${dischargingEnabled ? 'active' : 'inactive'}">${pendingWrite ? 'Pending write...' : (dischargingEnabled ? 'Active' : 'Inactive')}</span>
-            ${pendingWrite ? '<div class="wait-message">Wait for modbus transfer</div>' : ''}
-          </div>
+          ${this._renderStatusButton(dischargingEnabled, pendingWrite, 'discharging')}
         </div>
         
         <div class="subsection">
@@ -263,34 +240,14 @@ class SajH2InverterCard extends HTMLElement {
             <span class="slot-number">Slot ${slot.index + 1}</span>
           </label>
           <div class="time-container">
-            <select id="slot-${slot.index}-start-hour" class="time-select">
-              ${this._generateHourOptions(slot.startTime)}
-            </select>
-            <span>:</span>
-            <select id="slot-${slot.index}-start-minute" class="time-select">
-              ${this._generateMinuteOptions(slot.startTime)}
-            </select>
-            <span class="time-separator">-</span>
-            <select id="slot-${slot.index}-end-hour" class="time-select">
-              ${this._generateHourOptions(slot.endTime)}
-            </select>
-            <span>:</span>
-            <select id="slot-${slot.index}-end-minute" class="time-select">
-              ${this._generateMinuteOptions(slot.endTime)}
-            </select>
+            ${this._renderTimeSelects(`slot-${slot.index}`, slot.startTime, slot.endTime)}
             <input type="number" id="slot-${slot.index}-power" class="power-input" min="0" max="100" step="1" value="${slot.power}" />
             <span>%</span>
           </div>
         </div>
         <div class="days-container">
           <div class="days-select">
-            <label><input type="checkbox" id="slot-${slot.index}-day-mo" ${days.monday ? 'checked' : ''} />Mo</label>
-            <label><input type="checkbox" id="slot-${slot.index}-day-tu" ${days.tuesday ? 'checked' : ''} />Tu</label>
-            <label><input type="checkbox" id="slot-${slot.index}-day-we" ${days.wednesday ? 'checked' : ''} />We</label>
-            <label><input type="checkbox" id="slot-${slot.index}-day-th" ${days.thursday ? 'checked' : ''} />Th</label>
-            <label><input type="checkbox" id="slot-${slot.index}-day-fr" ${days.friday ? 'checked' : ''} />Fr</label>
-            <label><input type="checkbox" id="slot-${slot.index}-day-sa" ${days.saturday ? 'checked' : ''} />Sa</label>
-            <label><input type="checkbox" id="slot-${slot.index}-day-su" ${days.sunday ? 'checked' : ''} />Su</label>
+            ${this._renderDayCheckboxes(`slot-${slot.index}`, slot.dayMask)}
           </div>
         </div>
       </div>
@@ -313,7 +270,6 @@ class SajH2InverterCard extends HTMLElement {
   // Add charging event listeners
   _addChargingEventListeners() {
     const q = id => this._content.querySelector(id);
-    const getVal = (h, m) => `${h.value.padStart(2, '0')}:${m.value.padStart(2, '0')}`;
 
     // Charging toggle button
     const chargingToggle = q('#charging-toggle');
@@ -338,33 +294,17 @@ class SajH2InverterCard extends HTMLElement {
     }
 
     // Time inputs
-    q('#charge-start-hour')?.addEventListener('change', () => this._setTimeEntity(this._entities.chargeStart, getVal(q('#charge-start-hour'), q('#charge-start-minute'))));
-    q('#charge-start-minute')?.addEventListener('change', () => this._setTimeEntity(this._entities.chargeStart, getVal(q('#charge-start-hour'), q('#charge-start-minute'))));
-    q('#charge-end-hour')?.addEventListener('change', () => this._setTimeEntity(this._entities.chargeEnd, getVal(q('#charge-end-hour'), q('#charge-end-minute'))));
-    q('#charge-end-minute')?.addEventListener('change', () => this._setTimeEntity(this._entities.chargeEnd, getVal(q('#charge-end-hour'), q('#charge-end-minute'))));
+    this._setupTimeListeners('charge', this._entities.chargeStart, this._entities.chargeEnd);
 
     // Power slider
     const powerSlider = q('#charge-power');
     if (powerSlider) {
       powerSlider.addEventListener('input', e => q('.power-value').textContent = `${e.target.value}%`);
-      powerSlider.addEventListener('change', e => this._setNumberEntity(this._entities.chargePower, parseInt(e.target.value)));
+      powerSlider.addEventListener('change', e => this._setEntityValue(this._entities.chargePower, parseInt(e.target.value), 'number'));
     }
 
     // Day checkboxes
-    ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].forEach(day => {
-      const checkbox = q(`#day-${day}`);
-      if (checkbox) {
-        checkbox.addEventListener('change', () => {
-          const days = {};
-          ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].forEach(d => {
-            const cb = q(`#day-${d}`);
-            days[d] = cb ? cb.checked : false;
-          });
-          const mask = this._calculateDaymask(days);
-          this._setNumberEntity(this._entities.chargeDayMask, mask);
-        });
-      }
-    });
+    this._setupDayListeners('charge', this._entities.chargeDayMask);
   }
 
   // Add discharging event listeners
@@ -410,124 +350,113 @@ class SajH2InverterCard extends HTMLElement {
           } else {
             timeEnableValue &= ~bitValue; // Clear bit
           }
-          this._setNumberEntity(this._entities.timeEnable, timeEnableValue);
+          this._setEntityValue(this._entities.timeEnable, timeEnableValue, 'number');
         });
       }
 
       // Time inputs
-      const startHour = q(`#slot-${index}-start-hour`);
-      const startMinute = q(`#slot-${index}-start-minute`);
-      const endHour = q(`#slot-${index}-end-hour`);
-      const endMinute = q(`#slot-${index}-end-minute`);
-      
-      const updateStartTime = () => {
-        if (startHour && startMinute) {
-          const hour = startHour.value.padStart(2, '0');
-          const minute = startMinute.value.padStart(2, '0');
-          this._setTimeEntity(slot.startTime, `${hour}:${minute}`);
-        }
-      };
-      
-      const updateEndTime = () => {
-        if (endHour && endMinute) {
-          const hour = endHour.value.padStart(2, '0');
-          const minute = endMinute.value.padStart(2, '0');
-          this._setTimeEntity(slot.endTime, `${hour}:${minute}`);
-        }
-      };
-      
-      startHour?.addEventListener('change', updateStartTime);
-      startMinute?.addEventListener('change', updateStartTime);
-      endHour?.addEventListener('change', updateEndTime);
-      endMinute?.addEventListener('change', updateEndTime);
+      this._setupTimeListeners(`slot-${index}`, slot.startTime, slot.endTime);
       
       // Power input
       const powerInput = q(`#slot-${index}-power`);
       if (powerInput) {
         powerInput.addEventListener('change', e => {
           const value = parseInt(e.target.value);
-          this._setNumberEntity(slot.power, value);
+          this._setEntityValue(slot.power, value, 'number');
         });
       }
       
       // Day checkboxes
-      const updateDayMask = () => {
-        const days = {
-          monday: q(`#slot-${index}-day-mo`)?.checked || false,
-          tuesday: q(`#slot-${index}-day-tu`)?.checked || false,
-          wednesday: q(`#slot-${index}-day-we`)?.checked || false,
-          thursday: q(`#slot-${index}-day-th`)?.checked || false,
-          friday: q(`#slot-${index}-day-fr`)?.checked || false,
-          saturday: q(`#slot-${index}-day-sa`)?.checked || false,
-          sunday: q(`#slot-${index}-day-su`)?.checked || false
-        };
-        const mask = this._calculateDaymask(days);
-        this._setNumberEntity(slot.dayMask, mask);
-      };
-      
-      ['mo', 'tu', 'we', 'th', 'fr', 'sa', 'su'].forEach(day => {
-        const checkbox = q(`#slot-${index}-day-${day}`);
-        checkbox?.addEventListener('change', updateDayMask);
+      this._setupDayListeners(`slot-${index}`, slot.dayMask);
+    });
+  }
+
+  // Generate time options helper
+  _generateTimeOptions(type, selectedValue) {
+    const max = type === 'hour' ? 24 : 60;
+    return Array.from({length: max}, (_, i) => {
+      const val = i.toString().padStart(2, '0');
+      return `<option value="${i}" ${i === selectedValue ? 'selected' : ''}>${val}</option>`;
+    }).join('');
+  }
+
+  // Simplified time string parser
+  _parseTime(timeString) {
+    const [h = '0', m = '0'] = (timeString || '00:00').split(':');
+    return { hour: parseInt(h) || 0, minute: parseInt(m) || 0 };
+  }
+
+  // Combined entity setter
+  _setEntityValue(entityId, value, type = 'text') {
+    try {
+      this._hass.callService(type, 'set_value', { entity_id: entityId, value });
+      this._debug && console.log(`SAJ H2 Inverter Card: Set ${entityId} to ${value}`);
+    } catch (error) {
+      console.error(`SAJ H2 Inverter Card: Error setting ${entityId}:`, error);
+    }
+  }
+
+  // Simplified render methods
+  _renderTimeSelects(prefix, startTime, endTime) {
+    const start = this._parseTime(startTime);
+    const end = this._parseTime(endTime);
+    return `
+      <select id="${prefix}-start-hour" class="time-select">${this._generateTimeOptions('hour', start.hour)}</select>:
+      <select id="${prefix}-start-minute" class="time-select">${this._generateTimeOptions('minute', start.minute)}</select>
+      <span class="time-separator">-</span>
+      <select id="${prefix}-end-hour" class="time-select">${this._generateTimeOptions('hour', end.hour)}</select>:
+      <select id="${prefix}-end-minute" class="time-select">${this._generateTimeOptions('minute', end.minute)}</select>
+    `;
+  }
+
+  _renderDayCheckboxes(prefix, dayMask) {
+    const days = this._getDaysFromMask(dayMask);
+    return ['Mo','Tu','We','Th','Fr','Sa','Su'].map((day, i) => `
+      <label class="day-checkbox">
+        <input type="checkbox" id="${prefix}-day-${day.toLowerCase()}" ${days[Object.keys(days)[i]] ? 'checked' : ''} />
+        <span>${day}</span>
+      </label>
+    `).join('');
+  }
+
+  _renderStatusButton(enabled, pending, type) {
+    return `
+      <button class="control-button ${enabled ? 'active' : ''}" id="${type}-toggle">
+        ${enabled ? 'Disable' : 'Enable'} ${type.charAt(0).toUpperCase() + type.slice(1)}
+      </button>
+      <div class="status-display">
+        Status: <span class="status-value ${enabled ? 'active' : 'inactive'}">${pending ? 'Pending write...' : (enabled ? 'Active' : 'Inactive')}</span>
+        ${pending ? '<div class="wait-message">Wait for modbus transfer</div>' : ''}
+      </div>
+    `;
+  }
+
+  // Simplified event listener setup
+  _setupTimeListeners(prefix, startEntity, endEntity) {
+    const q = id => this._content.querySelector(id);
+    ['start', 'end'].forEach(type => {
+      ['hour', 'minute'].forEach(unit => {
+        q(`#${prefix}-${type}-${unit}`)?.addEventListener('change', () => {
+          const entity = type === 'start' ? startEntity : endEntity;
+          const h = q(`#${prefix}-${type}-hour`).value.padStart(2, '0');
+          const m = q(`#${prefix}-${type}-minute`).value.padStart(2, '0');
+          this._setEntityValue(entity, `${h}:${m}`);
+        });
       });
     });
   }
 
-  // Generate hour options (0-23)
-  _generateHourOptions(timeString) {
-    const hour = this._getHourFromTimeString(timeString);
-    let options = '';
-    
-    for (let i = 0; i < 24; i++) {
-      const selected = i === hour ? 'selected' : '';
-      const displayValue = i < 10 ? `0${i}` : `${i}`;
-      options += `<option value="${i}" ${selected}>${displayValue}</option>`;
-    }
-    
-    return options;
-  }
-  
-  // Generate minute options (0-59)
-  _generateMinuteOptions(timeString) {
-    const minute = this._getMinuteFromTimeString(timeString);
-    let options = '';
-    
-    for (let i = 0; i < 60; i++) {
-      const selected = i === minute ? 'selected' : '';
-      const displayValue = i < 10 ? `0${i}` : `${i}`;
-      options += `<option value="${i}" ${selected}>${displayValue}</option>`;
-    }
-    
-    return options;
-  }
-
-  // Set time entity value
-  _setTimeEntity(entityId, value) {
-    try {
-      this._hass.callService('text', 'set_value', {
-        entity_id: entityId,
-        value: value
+  _setupDayListeners(prefix, dayMaskEntity) {
+    const q = id => this._content.querySelector(id);
+    ['mo','tu','we','th','fr','sa','su'].forEach(day => {
+      q(`#${prefix}-day-${day}`)?.addEventListener('change', () => {
+        const days = {};
+        ['mo','tu','we','th','fr','sa','su'].forEach((d, i) => {
+          days[Object.keys(this._getDaysFromMask(0))[i]] = q(`#${prefix}-day-${d}`)?.checked || false;
+        });
+        this._setEntityValue(dayMaskEntity, this._calculateDaymask(days), 'number');
       });
-      if (this._debug) {
-        console.log(`SAJ H2 Inverter Card: Set ${entityId} to ${value}`);
-      }
-    } catch (error) {
-      console.error(`SAJ H2 Inverter Card: Error setting ${entityId} to ${value}:`, error);
-    }
-  }
-
-  // Set number entity value
-  _setNumberEntity(entityId, value) {
-    try {
-      this._hass.callService('number', 'set_value', {
-        entity_id: entityId,
-        value: value
-      });
-      if (this._debug) {
-        console.log(`SAJ H2 Inverter Card: Set ${entityId} to ${value}`);
-      }
-    } catch (error) {
-      console.error(`SAJ H2 Inverter Card: Error setting ${entityId} to ${value}:`, error);
-    }
+    });
   }
 
   // Calculate daymask from selected days
@@ -540,24 +469,6 @@ class SajH2InverterCard extends HTMLElement {
   _getDaysFromMask(mask) {
     return ['monday','tuesday','wednesday','thursday','friday','saturday','sunday']
       .reduce((obj, d, i) => (obj[d] = (mask & (1 << i)) !== 0, obj), {});
-  }
-
-  // Get hour from time string (format: HH:MM)
-  _getHourFromTimeString(timeString) {
-    if (!timeString || timeString.indexOf(':') === -1) {
-      return 0;
-    }
-    
-    return parseInt(timeString.split(':')[0]) || 0;
-  }
-  
-  // Get minute from time string (format: HH:MM)
-  _getMinuteFromTimeString(timeString) {
-    if (!timeString || timeString.indexOf(':') === -1) {
-      return 0;
-    }
-    
-    return parseInt(timeString.split(':')[1]) || 0;
   }
 
   // Card sizing
