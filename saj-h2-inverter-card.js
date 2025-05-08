@@ -2,7 +2,7 @@
  * SAJ H2 Inverter Card
  * Custom card for Home Assistant to control SAJ H2 Inverter charging and discharging settings
  * 
- * @author Cline AI Assistant
+ * @author stanus74
  * @version 1.0.0
  */
 
