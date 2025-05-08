@@ -1,48 +1,3 @@
-# SAJ H2 Charge/Discharge Card
-
-A custom card for Home Assistant to control charging/discharging settings for SAJ H2 inverters.
-
-## Features
-
-- Easy setting of charge start and end time
-- Slider for adjusting charging power (0-25%)
-- User-friendly selection of charging days with checkboxes
-- Display of the calculated daymask value
-- Button to enable/disable charging
-- Status display for the charging state
-
-## Installation
-
-1. Copy the file `saj-h2-charge-card.js` to the directory `/config/www/saj-h2-charge-card/` of your Home Assistant installation.
-
-2. Add the resource to your Lovelace configuration:
-
-   - go to Settings > Dashboards > right upper corner tree dots > Ressources > rigth uper "Add ressources" 
-     Path: /local/saj-h2-inverter-card.js
-
-   ```yaml
-   resources:
-     - url: /local/saj-h2-charge-card.js
-       type: module
-   ```
-
-## Example Configuration
-
-### Only Charging Card
-   ```yaml
-   title: SAJ H2 Inverter Control
-   type: custom:saj-h2-inverter-card
-   mode: charge  # or discharge or both
-   charge_start_entity: text.saj_charge_start_time_time
-   charge_end_entity: text.saj_charge_end_time_time
-   charge_day_mask_entity: number.saj_charge_day_mask_input
-   charge_power_entity: number.saj_charge_power_percent_input
-   charging_switch_entity: switch.saj_charging_control
-   ```
-
-
-### Full Configuration
-```yaml
 title: SAJ H2 Inverter Control
 type: custom:saj-h2-inverter-card
 mode: both
@@ -82,13 +37,3 @@ discharge_slots:
     dayMask: number.saj_discharge7_day_mask_input
 time_enable_entity: number.saj_discharge_time_enable_input
 discharging_switch_entity: switch.saj_discharging_control
-```
-
-## Troubleshooting
-
-If the card is not displayed correctly or errors occur:
-
-1. Check if the JavaScript file was correctly copied to the `/config/www/` directory.
-2. Make sure the resource was correctly added to your Lovelace configuration.
-3. Check if all required entity IDs are correctly specified in the configuration.
-4. Check the browser console for JavaScript errors.

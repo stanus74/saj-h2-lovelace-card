@@ -10,7 +10,7 @@ This guide explains how to add a custom JavaScript resource to your Lovelace con
 4. Click on the **Resources** tab
 5. Click on the **+ ADD RESOURCE** button in the bottom right corner
 6. Enter the following information:
-   - URL: `/local/saj-h2-charge-card/saj-h2-charge-card.js`
+   - URL: `/local/saj-h2-charge-card.js`
    - Resource Type: `JavaScript Module`
 7. Click **CREATE**
 8. Reload the page to apply the changes
@@ -24,7 +24,7 @@ If you use Lovelace in YAML mode, you can add the resource in your `ui-lovelace.
 
 ```yaml
 resources:
-  - url: /local/saj-h2-charge-card/saj-h2-charge-card.js
+  - url: /local/saj-h2-charge-card.js
     type: module
 ```
 
@@ -45,7 +45,7 @@ If you have multiple dashboards, you can add the resource in the `lovelace-resou
       {
         "id": "saj_h2_charge_card",
         "type": "module",
-        "url": "/local/saj-h2-charge-card/saj-h2-charge-card.js"
+        "url": "/local/saj-h2-charge-card.js"
       }
     ]
   },
