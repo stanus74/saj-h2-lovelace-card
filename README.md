@@ -1,31 +1,31 @@
 # SAJ H2 Charge Card
 
-Eine benutzerdefinierte Karte für Home Assistant zur Steuerung der Ladeeinstellungen für SAJ H2 Wechselrichter.
+A custom card for Home Assistant to control charging settings for SAJ H2 inverters.
 
-## Funktionen
+## Features
 
-- Einfache Einstellung von Ladestart- und Endezeit
-- Slider zur Einstellung der Ladeleistung (0-25%)
-- Benutzerfreundliche Auswahl der Ladetage mit Checkboxen
-- Anzeige des berechneten Daymask-Wertes
-- Button zum Aktivieren/Deaktivieren des Ladens
-- Statusanzeige für den Ladezustand
+- Easy setting of charge start and end time
+- Slider for adjusting charging power (0-25%)
+- User-friendly selection of charging days with checkboxes
+- Display of the calculated daymask value
+- Button to enable/disable charging
+- Status display for the charging state
 
 ## Installation
 
-1. Kopieren Sie die Datei `saj-h2-charge-card.js` in das Verzeichnis `/config/www/saj-h2-charge-card/` Ihrer Home Assistant Installation.
+1. Copy the file `saj-h2-charge-card.js` to the directory `/config/www/saj-h2-charge-card/` of your Home Assistant installation.
 
-2. Fügen Sie die Ressource in Ihrer Lovelace-Konfiguration hinzu:
+2. Add the resource to your Lovelace configuration:
    ```yaml
    resources:
      - url: /local/saj-h2-charge-card/saj-h2-charge-card.js
        type: module
    ```
 
-3. Fügen Sie die Karte zu Ihrem Dashboard hinzu:
+3. Add the card to your dashboard:
    ```yaml
    type: 'custom:saj-h2-charge-card'
-   title: 'SAJ H2 Ladesteuerung'
+   title: 'SAJ H2 Charge Control'
    charge_start_entity: text.saj_charge_start_time_time
    charge_end_entity: text.saj_charge_end_time_time
    charge_day_mask_entity: number.saj_charge_day_mask_input
@@ -33,22 +33,22 @@ Eine benutzerdefinierte Karte für Home Assistant zur Steuerung der Ladeeinstell
    charging_switch_entity: switch.saj_charging_control
    ```
 
-## Konfigurationsoptionen
+## Configuration Options
 
-| Option | Typ | Erforderlich | Beschreibung |
+| Option | Type | Required | Description |
 |--------|-----|-------------|-------------|
-| `title` | Zeichenkette | Nein | Titel der Karte (Standard: "SAJ H2 Ladesteuerung") |
-| `charge_start_entity` | Zeichenkette | Ja | Entity-ID der Ladestart-Zeit (text) |
-| `charge_end_entity` | Zeichenkette | Ja | Entity-ID der Ladeend-Zeit (text) |
-| `charge_day_mask_entity` | Zeichenkette | Ja | Entity-ID der Ladetage-Maske (number) |
-| `charge_power_entity` | Zeichenkette | Ja | Entity-ID der Ladeleistung (number) |
-| `charging_switch_entity` | Zeichenkette | Ja | Entity-ID des Lade-Schalters (switch) |
+| `title` | String | No | Title of the card (Default: "SAJ H2 Charge Control") |
+| `charge_start_entity` | String | Yes | Entity ID of the charge start time (text) |
+| `charge_end_entity` | String | Yes | Entity ID of the charge end time (text) |
+| `charge_day_mask_entity` | String | Yes | Entity ID of the charge days mask (number) |
+| `charge_power_entity` | String | Yes | Entity ID of the charging power (number) |
+| `charging_switch_entity` | String | Yes | Entity ID of the charging switch (switch) |
 
-## Beispiel-Konfiguration
+## Example Configuration
 
 ```yaml
 type: 'custom:saj-h2-charge-card'
-title: 'SAJ H2 Ladesteuerung'
+title: 'SAJ H2 Charge Control'
 charge_start_entity: text.saj_charge_start_time_time
 charge_end_entity: text.saj_charge_end_time_time
 charge_day_mask_entity: number.saj_charge_day_mask_input
@@ -56,25 +56,25 @@ charge_power_entity: number.saj_charge_power_percent_input
 charging_switch_entity: switch.saj_charging_control
 ```
 
-## Hinweise zur Daymask
+## Notes on Daymask
 
-Die Daymask ist ein binärer Wert, der die Tage repräsentiert, an denen der Ladevorgang aktiv sein soll:
+The daymask is a binary value that represents the days on which the charging process should be active:
 
-- Montag = Bit 0 = Wert 1
-- Dienstag = Bit 1 = Wert 2
-- Mittwoch = Bit 2 = Wert 4
-- Donnerstag = Bit 3 = Wert 8
-- Freitag = Bit 4 = Wert 16
-- Samstag = Bit 5 = Wert 32
-- Sonntag = Bit 6 = Wert 64
+- Monday = Bit 0 = Value 1
+- Tuesday = Bit 1 = Value 2
+- Wednesday = Bit 2 = Value 4
+- Thursday = Bit 3 = Value 8
+- Friday = Bit 4 = Value 16
+- Saturday = Bit 5 = Value 32
+- Sunday = Bit 6 = Value 64
 
-Die Karte berechnet diesen Wert automatisch basierend auf den ausgewählten Tagen.
+The card automatically calculates this value based on the selected days.
 
-## Fehlerbehebung
+## Troubleshooting
 
-Wenn die Karte nicht korrekt angezeigt wird oder Fehler auftreten:
+If the card is not displayed correctly or errors occur:
 
-1. Überprüfen Sie, ob die JavaScript-Datei korrekt in das `/config/www/saj-h2-charge-card/` Verzeichnis kopiert wurde.
-2. Stellen Sie sicher, dass die Ressource korrekt in Ihrer Lovelace-Konfiguration hinzugefügt wurde.
-3. Überprüfen Sie, ob alle erforderlichen Entity-IDs in der Konfiguration korrekt angegeben sind.
-4. Überprüfen Sie die Browser-Konsole auf JavaScript-Fehler.
+1. Check if the JavaScript file was correctly copied to the `/config/www/saj-h2-charge-card/` directory.
+2. Make sure the resource was correctly added to your Lovelace configuration.
+3. Check if all required entity IDs are correctly specified in the configuration.
+4. Check the browser console for JavaScript errors.

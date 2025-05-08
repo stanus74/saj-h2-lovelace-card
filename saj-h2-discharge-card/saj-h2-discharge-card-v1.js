@@ -122,10 +122,10 @@ class SajH2DischargeCardV1 extends HTMLElement {
       
       this._content.innerHTML = `
         <div class="card-error">
-          <h2>Entität nicht gefunden</h2>
-          <p>Bitte überprüfen Sie die Konfiguration der Karte.</p>
-          <p>Fehlende Entität: ${!dischargingSwitchEntity ? this._entities.dischargingSwitch : 
-                               !timeEnableEntity ? this._entities.timeEnable : 'Unbekannt'}</p>
+          <h2>Entity not found</h2>
+          <p>Please check the card configuration.</p>
+          <p>Missing entity: ${!dischargingSwitchEntity ? this._entities.dischargingSwitch : 
+                               !timeEnableEntity ? this._entities.timeEnable : 'Unknown'}</p>
         </div>
       `;
       return;
@@ -177,17 +177,17 @@ class SajH2DischargeCardV1 extends HTMLElement {
       <ha-card>
         <div class="card-content">
           <div class="section">
-            <div class="section-header">Entladesteuerung</div>
+            <div class="section-header">Discharge Control</div>
             <button class="discharge-toggle-button ${dischargingEnabled ? 'active' : ''}" id="discharge-toggle">
-              ${dischargingEnabled ? 'Entladen deaktivieren' : 'Entladen aktivieren'}
+              ${dischargingEnabled ? 'Disable Discharging' : 'Enable Discharging'}
             </button>
             <div class="discharge-status">
-              Status: <span class="${dischargingEnabled ? 'active' : 'inactive'}">${dischargingEnabled ? 'Aktiv' : 'Inaktiv'}</span>
+              Status: <span class="${dischargingEnabled ? 'active' : 'inactive'}">${dischargingEnabled ? 'Active' : 'Inactive'}</span>
             </div>
           </div>
 
           <div class="section">
-            <div class="section-header">Entladezeiten</div>
+            <div class="section-header">Discharge Times</div>
             <div class="discharge-slots-table">
               ${dischargeSlots.map((slot, index) => this.renderSlot(slot, index)).join('')}
             </div>
@@ -202,11 +202,10 @@ class SajH2DischargeCardV1 extends HTMLElement {
     const days = this._getDaysFromMask(slot.dayMask);
     return `
       <div class="slot-row ${!slot.valid ? 'invalid' : ''}">
-        <label class="slot-checkbox">
-          <input type="checkbox" id="slot-${index}-enabled" ${slot.enabled ? 'checked' : ''} ${!slot.valid ? 'disabled' : ''} />
-        </label>
         <div class="time-container">
-          <span class="time-label">Start:</span>
+          <label class="slot-checkbox">
+            <input type="checkbox" id="slot-${index}-enabled" ${slot.enabled ? 'checked' : ''} ${!slot.valid ? 'disabled' : ''} />
+          </label>
           <select id="slot-${index}-start-hour" class="time-select" ${!slot.valid ? 'disabled' : ''}>
             ${this._generateHourOptions(slot.startTime)}
           </select>
@@ -214,7 +213,7 @@ class SajH2DischargeCardV1 extends HTMLElement {
           <select id="slot-${index}-start-minute" class="time-select" ${!slot.valid ? 'disabled' : ''}>
             ${this._generateMinuteOptions(slot.startTime)}
           </select>
-          <span class="time-label">End:</span>
+          <span class="time-separator">-</span>
           <select id="slot-${index}-end-hour" class="time-select" ${!slot.valid ? 'disabled' : ''}>
             ${this._generateHourOptions(slot.endTime)}
           </select>
@@ -222,23 +221,20 @@ class SajH2DischargeCardV1 extends HTMLElement {
           <select id="slot-${index}-end-minute" class="time-select" ${!slot.valid ? 'disabled' : ''}>
             ${this._generateMinuteOptions(slot.endTime)}
           </select>
-        </div>
-        <div class="power-container">
-          <span class="power-label">Leistung:</span>
           <input type="number" id="slot-${index}-power" class="power-input" min="0" max="100" step="1" value="${slot.power}" ${!slot.valid ? 'disabled' : ''} />
           <span>%</span>
         </div>
         <div class="days-container">
-          <div class="days-header">Tage:</div>
           <div class="days-select">
             <label><input type="checkbox" id="slot-${index}-day-mo" ${days.monday ? 'checked' : ''} ${!slot.valid ? 'disabled' : ''} />Mo</label>
-            <label><input type="checkbox" id="slot-${index}-day-tu" ${days.tuesday ? 'checked' : ''} ${!slot.valid ? 'disabled' : ''} />Di</label>
-            <label><input type="checkbox" id="slot-${index}-day-we" ${days.wednesday ? 'checked' : ''} ${!slot.valid ? 'disabled' : ''} />Mi</label>
-            <label><input type="checkbox" id="slot-${index}-day-th" ${days.thursday ? 'checked' : ''} ${!slot.valid ? 'disabled' : ''} />Do</label>
+            <label><input type="checkbox" id="slot-${index}-day-tu" ${days.tuesday ? 'checked' : ''} ${!slot.valid ? 'disabled' : ''} />Tu</label>
+            <label><input type="checkbox" id="slot-${index}-day-we" ${days.wednesday ? 'checked' : ''} ${!slot.valid ? 'disabled' : ''} />We</label>
+            <label><input type="checkbox" id="slot-${index}-day-th" ${days.thursday ? 'checked' : ''} ${!slot.valid ? 'disabled' : ''} />Th</label>
             <label><input type="checkbox" id="slot-${index}-day-fr" ${days.friday ? 'checked' : ''} ${!slot.valid ? 'disabled' : ''} />Fr</label>
             <label><input type="checkbox" id="slot-${index}-day-sa" ${days.saturday ? 'checked' : ''} ${!slot.valid ? 'disabled' : ''} />Sa</label>
-            <label><input type="checkbox" id="slot-${index}-day-su" ${days.sunday ? 'checked' : ''} ${!slot.valid ? 'disabled' : ''} />So</label>
+            <label><input type="checkbox" id="slot-${index}-day-su" ${days.sunday ? 'checked' : ''} ${!slot.valid ? 'disabled' : ''} />Su</label>
           </div>
+          <div class="days-separator"></div>
         </div>
       </div>
     `;
@@ -472,18 +468,286 @@ class SajH2DischargeCardV1 extends HTMLElement {
     return 7;
   }
 
-  // Load external CSS
+  // Load CSS directly in the card
   connectedCallback() {
     super.connectedCallback && super.connectedCallback();
     
-    // Load the CSS file
-    if (!document.getElementById('saj-h2-discharge-card-styles')) {
-      const style = document.createElement('link');
-      style.id = 'saj-h2-discharge-card-styles';
-      style.rel = 'stylesheet';
-      style.href = '/local/saj-h2-discharge-card/saj-h2-discharge-card.css';
-      document.head.appendChild(style);
-    }
+    // Add CSS directly to the card
+    const style = document.createElement('style');
+    style.textContent = `
+        .saj-h2-discharge-card {
+          padding: 16px;
+        }
+        
+        .card-header {
+          font-size: 1.5rem;
+          font-weight: 500;
+          padding: 16px;
+          text-align: center;
+        }
+        
+        .card-content {
+          padding: 16px;
+        }
+        
+        .section {
+          margin-bottom: 20px;
+        }
+        
+        .section-header {
+          font-size: 1.1rem;
+          font-weight: 500;
+          margin-bottom: 10px;
+          color: var(--primary-color);
+          display: flex;
+          align-items: center;
+        }
+        
+        /* Discharge slots */
+        .discharge-slots-table {
+          width: 100%;
+          margin-top: 10px;
+          font-size: 0.9rem;
+          background: var(--card-background-color);
+          border-radius: 8px;
+          box-shadow: var(--ha-card-box-shadow, none);
+          border: 1px solid var(--divider-color, #858585);
+        }
+        
+        .slot-row {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0.75rem;
+          padding: 1rem;
+          border-bottom: 3px solid var(--primary-color, #03a9f4);
+          margin-bottom: 0.75rem;
+        }
+        
+        .slot-row:last-child {
+          border-bottom: none;
+          margin-bottom: 0;
+        }
+        
+        .slot-row.invalid {
+          opacity: 0.5;
+          pointer-events: none;
+        }
+        
+        /* Slot elements */
+        .slot-checkbox {
+          display: flex;
+          align-items: center;
+          cursor: pointer;
+          margin-right: 8px;
+        }
+        
+        .time-container, .power-container, .daymask-container {
+          display: flex;
+          align-items: center;
+          white-space: nowrap;
+        }
+        
+        .time-label, .power-label, .daymask-label {
+          margin-right: 4px;
+        }
+        
+        /* Time selectors */
+        .time-container {
+          margin-right: 8px;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+        
+        .time-label {
+          margin-right: 4px;
+          white-space: nowrap;
+        }
+        
+        .time-select {
+          padding: 4px;
+          border-radius: 4px;
+          border: 1px solid var(--divider-color);
+          background-color: var(--card-background-color);
+          color: var(--primary-text-color);
+          width: 50px;
+          text-align: center;
+        }
+        
+        /* Number inputs */
+        .power-input, .daymask-input {
+          width: 60px;
+          padding: 4px;
+          border-radius: 4px;
+          border: 1px solid var(--divider-color);
+          background-color: var(--card-background-color);
+          color: var(--primary-text-color);
+          text-align: center;
+        }
+        
+        .power-container {
+          margin-right: 8px;
+        }
+        
+        /* Day mask dialog */
+        .day-mask-dialog {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: rgba(0, 0, 0, 0.5);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          z-index: 1000;
+        }
+        
+        .dialog-content {
+          background-color: var(--card-background-color);
+          border-radius: 8px;
+          padding: 16px;
+          width: 80%;
+          max-width: 400px;
+        }
+        
+        .dialog-header {
+          font-size: 1.1rem;
+          font-weight: 500;
+          margin-bottom: 16px;
+          color: var(--primary-color);
+        }
+        
+        .days-selection {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-bottom: 16px;
+        }
+        
+        .day-checkbox {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          cursor: pointer;
+        }
+        
+        .day-checkbox span {
+          margin-top: 4px;
+        }
+        
+        .dialog-buttons {
+          display: flex;
+          justify-content: flex-end;
+          gap: 8px;
+        }
+        
+        .dialog-buttons button {
+          padding: 8px 16px;
+          border-radius: 4px;
+          border: none;
+          cursor: pointer;
+        }
+        
+        #dialog-cancel {
+          background-color: var(--secondary-background-color);
+          color: var(--primary-text-color);
+        }
+        
+        #dialog-save {
+          background-color: var(--primary-color);
+          color: white;
+        }
+        
+        /* Discharge toggle button */
+        .discharge-toggle-button {
+          width: 100%;
+          padding: 12px;
+          border-radius: 4px;
+          border: none;
+          background-color: var(--primary-color);
+          color: white;
+          font-weight: 500;
+          cursor: pointer;
+          margin-bottom: 10px;
+        }
+        
+        .discharge-toggle-button.active {
+          background-color: var(--error-color);
+        }
+        
+        .discharge-status {
+          text-align: center;
+        }
+        
+        .discharge-status .active {
+          color: var(--success-color);
+          font-weight: 500;
+        }
+        
+        .discharge-status .inactive {
+          color: var(--error-color);
+        }
+        
+        .card-error {
+          padding: 16px;
+          color: var(--error-color);
+        }
+        
+        /* Days container and selection */
+        .days-container {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          width: 100%;
+        }
+        
+        .days-header {
+          font-weight: 500;
+          margin-bottom: 0.5rem;
+        }
+        
+        .days-select {
+          display: flex;
+          gap: 0.5rem;
+          flex-wrap: nowrap;
+          padding-bottom: 0.5rem;
+          padding-left: 2.5rem;
+          width: 100%;
+        }
+        
+        .days-separator {
+          width: 100%;
+          height: 2px;
+          background-color: var(--divider-color, #858585);
+          position: relative;
+          margin-bottom: 0.75rem;
+        }
+        
+        .days-separator:after {
+          content: '';
+          position: absolute;
+          bottom: -1px;
+          left: 0;
+          right: 0;
+          height: 1px;
+          background-color: var(--primary-color, #03a9f4);
+        }
+        
+        .days-select label {
+          display: flex;
+          align-items: center;
+          gap: 0.15rem;
+          padding: 0.15rem;
+          border-radius: 3px;
+          background: var(--secondary-background-color);
+          font-size: 12px;
+          font-weight: normal;
+          color: var(--primary-text-color);
+        }
+      `;
+    this.appendChild(style);
   }
 }
 
@@ -495,5 +759,5 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: 'saj-h2-discharge-card-v1',
   name: 'SAJ H2 Discharge Card V1',
-  description: 'Karte zur Steuerung der Entladeeinstellungen für SAJ H2 Wechselrichter'
+  description: 'Card for controlling discharge settings for SAJ H2 inverters'
 });

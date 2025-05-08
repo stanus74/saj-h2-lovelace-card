@@ -1,26 +1,26 @@
-# Hinzufügen einer Ressource in Lovelace
+# Adding a Resource in Lovelace
 
-Diese Anleitung erklärt, wie Sie eine benutzerdefinierte JavaScript-Ressource zu Ihrer Lovelace-Konfiguration in Home Assistant hinzufügen.
+This guide explains how to add a custom JavaScript resource to your Lovelace configuration in Home Assistant.
 
-## Methode 1: Über die Benutzeroberfläche (empfohlen)
+## Method 1: Via the User Interface (recommended)
 
-1. Öffnen Sie Home Assistant in Ihrem Browser
-2. Klicken Sie auf **Konfiguration** in der Seitenleiste (Zahnrad-Symbol)
-3. Wählen Sie **Lovelace-Dashboards**
-4. Klicken Sie auf den Tab **Ressourcen**
-5. Klicken Sie auf den Button **+ RESSOURCE HINZUFÜGEN** in der unteren rechten Ecke
-6. Geben Sie folgende Informationen ein:
+1. Open Home Assistant in your browser
+2. Click on **Configuration** in the sidebar (gear icon)
+3. Select **Lovelace Dashboards**
+4. Click on the **Resources** tab
+5. Click on the **+ ADD RESOURCE** button in the bottom right corner
+6. Enter the following information:
    - URL: `/local/saj-h2-charge-card/saj-h2-charge-card.js`
-   - Ressourcentyp: `JavaScript-Modul`
-7. Klicken Sie auf **ERSTELLEN**
-8. Laden Sie die Seite neu, um die Änderungen zu übernehmen
+   - Resource Type: `JavaScript Module`
+7. Click **CREATE**
+8. Reload the page to apply the changes
 
-## Methode 2: Über die Konfigurationsdatei
+## Method 2: Via the Configuration File
 
-Wenn Sie Lovelace im YAML-Modus verwenden, können Sie die Ressource in Ihrer `ui-lovelace.yaml` Datei hinzufügen:
+If you use Lovelace in YAML mode, you can add the resource in your `ui-lovelace.yaml` file:
 
-1. Öffnen Sie Ihre `ui-lovelace.yaml` Datei
-2. Fügen Sie die Ressource im `resources`-Abschnitt hinzu:
+1. Open your `ui-lovelace.yaml` file
+2. Add the resource in the `resources` section:
 
 ```yaml
 resources:
@@ -28,15 +28,15 @@ resources:
     type: module
 ```
 
-3. Speichern Sie die Datei
-4. Laden Sie Home Assistant neu, um die Änderungen zu übernehmen
+3. Save the file
+4. Reload Home Assistant to apply the changes
 
-## Methode 3: Über die Ressourcen-Datei
+## Method 3: Via the Resources File
 
-Wenn Sie mehrere Dashboards haben, können Sie die Ressource in der `lovelace-resources.yaml` Datei hinzufügen:
+If you have multiple dashboards, you can add the resource in the `lovelace-resources.yaml` file:
 
-1. Erstellen oder öffnen Sie die Datei `.storage/lovelace_resources` in Ihrem Home Assistant-Konfigurationsverzeichnis
-2. Fügen Sie die Ressource hinzu:
+1. Create or open the file `.storage/lovelace_resources` in your Home Assistant configuration directory
+2. Add the resource:
 
 ```json
 {
@@ -54,17 +54,17 @@ Wenn Sie mehrere Dashboards haben, können Sie die Ressource in der `lovelace-re
 }
 ```
 
-3. Speichern Sie die Datei
-4. Starten Sie Home Assistant neu, um die Änderungen zu übernehmen
+3. Save the file
+4. Restart Home Assistant to apply the changes
 
-## Überprüfen der Installation
+## Verifying the Installation
 
-Nach dem Hinzufügen der Ressource sollten Sie in der Lage sein, die benutzerdefinierte Karte zu Ihrem Dashboard hinzuzufügen:
+After adding the resource, you should be able to add the custom card to your dashboard:
 
-1. Gehen Sie zu einem Dashboard
-2. Klicken Sie auf **Bearbeiten**
-3. Klicken Sie auf **+ Karte hinzufügen**
-4. Scrollen Sie nach unten zu **Benutzerdefiniert**
-5. Wählen Sie **SAJ H2 Charge Card**
+1. Go to a dashboard
+2. Click **Edit**
+3. Click **+ Add Card**
+4. Scroll down to **Custom**
+5. Select **SAJ H2 Charge Card**
 
-Wenn die Karte nicht in der Liste erscheint, überprüfen Sie, ob die Ressource korrekt hinzugefügt wurde und laden Sie die Seite neu.
+If the card does not appear in the list, check if the resource was added correctly and reload the page.

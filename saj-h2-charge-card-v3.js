@@ -1,11 +1,3 @@
-/**
- * SAJ H2 Charge Card V3
- * Custom card for Home Assistant to control SAJ H2 Inverter charging settings
- * 
- * @author Cline AI Assistant
- * @version 3.0.1
- */
-
 class SajH2ChargeCardV3 extends HTMLElement {
   constructor() {
     super();
@@ -17,35 +9,20 @@ class SajH2ChargeCardV3 extends HTMLElement {
       chargingSwitch: null
     };
     this._hass = null;
-    this._debug = false; // Set to true to enable debug logging
+    this._debug = false;
   }
 
-  // Card configuration
   setConfig(config) {
-    // Validate required entities
-    if (!config.charge_start_entity) {
-      throw new Error('You need to define a charge_start_entity');
+    if (!config.charge_start_entity || !config.charge_end_entity ||
+        !config.charge_day_mask_entity || !config.charge_power_entity ||
+        !config.charging_switch_entity) {
+      throw new Error('All required entities must be specified.');
     }
-    if (!config.charge_end_entity) {
-      throw new Error('You need to define a charge_end_entity');
-    }
-    if (!config.charge_day_mask_entity) {
-      throw new Error('You need to define a charge_day_mask_entity');
-    }
-    if (!config.charge_power_entity) {
-      throw new Error('You need to define a charge_power_entity');
-    }
-    if (!config.charging_switch_entity) {
-      throw new Error('You need to define a charging_switch_entity');
-    }
-
-    // Store entity IDs
     this._entities.chargeStart = config.charge_start_entity;
     this._entities.chargeEnd = config.charge_end_entity;
     this._entities.chargeDayMask = config.charge_day_mask_entity;
     this._entities.chargePower = config.charge_power_entity;
     this._entities.chargingSwitch = config.charging_switch_entity;
-    
     this._initCard();
   }
 
@@ -53,397 +30,278 @@ class SajH2ChargeCardV3 extends HTMLElement {
     if (this._content) {
       this.removeChild(this._content);
     }
-    
-    // Create the card content
     this._content = document.createElement('div');
     this._content.className = 'saj-h2-charge-card';
     this.appendChild(this._content);
-    
     if (this._hass) {
       this._renderCard();
     }
   }
 
-  // Handle updates when Home Assistant state changes
   set hass(hass) {
     this._hass = hass;
     this._renderCard();
   }
 
-  // Render the card
   _renderCard() {
-    if (!this._hass || !this._entities.chargeStart) {
+    if (!this._hass) return;
+    const s = this._entities;
+    const es = this._hass.states;
+    const start = es[s.chargeStart], end = es[s.chargeEnd], mask = es[s.chargeDayMask], power = es[s.chargePower], sw = es[s.chargingSwitch];
+    if (!start || !end || !mask || !power || !sw) {
+      this._content.innerHTML = '<div class="card-error"><h2>Entity not found</h2><p>Please check the configuration.</p></div>';
       return;
     }
-
-    // Get entity states
-    const chargeStartEntity = this._hass.states[this._entities.chargeStart];
-    const chargeEndEntity = this._hass.states[this._entities.chargeEnd];
-    const chargeDayMaskEntity = this._hass.states[this._entities.chargeDayMask];
-    const chargePowerEntity = this._hass.states[this._entities.chargePower];
-    const chargingSwitchEntity = this._hass.states[this._entities.chargingSwitch];
-
-    // Check if entities exist
-    if (!chargeStartEntity || !chargeEndEntity || !chargeDayMaskEntity || 
-        !chargePowerEntity || !chargingSwitchEntity) {
-      
-    // Log which entities are missing for debugging
-    if (this._debug) {
-      console.log('SAJ H2 Charge Card: Missing entities:');
-      if (!chargeStartEntity) console.log('- Missing: ' + this._entities.chargeStart);
-      if (!chargeEndEntity) console.log('- Missing: ' + this._entities.chargeEnd);
-      if (!chargeDayMaskEntity) console.log('- Missing: ' + this._entities.chargeDayMask);
-      if (!chargePowerEntity) console.log('- Missing: ' + this._entities.chargePower);
-      if (!chargingSwitchEntity) console.log('- Missing: ' + this._entities.chargingSwitch);
-    }
-      
-      this._content.innerHTML = `
-        <div class="card-error">
-          <h2>Entität nicht gefunden</h2>
-          <p>Bitte überprüfen Sie die Konfiguration der Karte.</p>
-          <p>Fehlende Entität: ${!chargeStartEntity ? this._entities.chargeStart : 
-                               !chargeEndEntity ? this._entities.chargeEnd :
-                               !chargeDayMaskEntity ? this._entities.chargeDayMask :
-                               !chargePowerEntity ? this._entities.chargePower :
-                               !chargingSwitchEntity ? this._entities.chargingSwitch : 'Unbekannt'}</p>
-        </div>
-      `;
-      return;
-    }
-
-    // Get current values
-    const chargeStart = chargeStartEntity.state;
-    const chargeEnd = chargeEndEntity.state;
-    const chargeDayMask = parseInt(chargeDayMaskEntity.state) || 0;
-    const chargePower = parseInt(chargePowerEntity.state) || 0;
-    
-    // Handle switch state, ignoring attributes
-    const chargingEnabled = chargingSwitchEntity.state === 'on';
-    
-    // Log entity states for debugging
-    if (this._debug) {
-      console.log('SAJ H2 Charge Card: Entity states:');
-      console.log('- ' + this._entities.chargeStart + ': ' + chargeStart);
-      console.log('- ' + this._entities.chargeEnd + ': ' + chargeEnd);
-      console.log('- ' + this._entities.chargeDayMask + ': ' + chargeDayMask);
-      console.log('- ' + this._entities.chargePower + ': ' + chargePower);
-      console.log('- ' + this._entities.chargingSwitch + ': ' + chargingSwitchEntity.state);
-      if (chargingSwitchEntity.attributes) {
-        console.log('- ' + this._entities.chargingSwitch + ' attributes:', chargingSwitchEntity.attributes);
-      }
-    }
-
-    // Get days from mask
+    const chargeStart = start.state;
+    const chargeEnd = end.state;
+    const chargeDayMask = parseInt(mask.state) || 0;
+    const chargePower = parseInt(power.state) || 0;
+    const chargingEnabled = sw.state === 'on';
     const days = this._getDaysFromMask(chargeDayMask);
 
-    // Render the card content
     this._content.innerHTML = `
       <ha-card>
         <div class="card-content">
           <div class="section">
-            <div class="section-header">Ladezeit</div>
+            <div class="section-header">Charging Time</div>
             <div class="time-row">
               <span class="time-label">Start:</span>
-              <select id="charge-start-hour" class="time-select">
-                ${this._generateHourOptions(chargeStart)}
-              </select>
+              <select id="charge-start-hour" class="time-select">${this._generateHourOptions(chargeStart)}</select>
               <span>:</span>
-              <select id="charge-start-minute" class="time-select">
-                ${this._generateMinuteOptions(chargeStart)}
-              </select>
-              
-              <span class="time-label">Ende:</span>
-              <select id="charge-end-hour" class="time-select">
-                ${this._generateHourOptions(chargeEnd)}
-              </select>
+              <select id="charge-start-minute" class="time-select">${this._generateMinuteOptions(chargeStart)}</select>
+              <span class="time-label">End:</span>
+              <select id="charge-end-hour" class="time-select">${this._generateHourOptions(chargeEnd)}</select>
               <span>:</span>
-              <select id="charge-end-minute" class="time-select">
-                ${this._generateMinuteOptions(chargeEnd)}
-              </select>
+              <select id="charge-end-minute" class="time-select">${this._generateMinuteOptions(chargeEnd)}</select>
             </div>
           </div>
-
           <div class="section">
-            <div class="section-header">Ladeleistung <span class="power-value">${chargePower}%</span></div>
+            <div class="section-header">Charging Power <span class="power-value">${chargePower}%</span></div>
             <div class="slider-container">
               <input type="range" id="charge-power" min="0" max="25" step="1" value="${chargePower}" />
             </div>
           </div>
-
           <div class="section">
-            <div class="section-header">Ladetage</div>
+            <div class="section-header">Charging Days</div>
             <div class="days-selection">
-              <label class="day-checkbox">
-                <input type="checkbox" id="day-monday" ${days.monday ? 'checked' : ''} />
-                <span>Mo</span>
-              </label>
-              <label class="day-checkbox">
-                <input type="checkbox" id="day-tuesday" ${days.tuesday ? 'checked' : ''} />
-                <span>Di</span>
-              </label>
-              <label class="day-checkbox">
-                <input type="checkbox" id="day-wednesday" ${days.wednesday ? 'checked' : ''} />
-                <span>Mi</span>
-              </label>
-              <label class="day-checkbox">
-                <input type="checkbox" id="day-thursday" ${days.thursday ? 'checked' : ''} />
-                <span>Do</span>
-              </label>
-              <label class="day-checkbox">
-                <input type="checkbox" id="day-friday" ${days.friday ? 'checked' : ''} />
-                <span>Fr</span>
-              </label>
-              <label class="day-checkbox">
-                <input type="checkbox" id="day-saturday" ${days.saturday ? 'checked' : ''} />
-                <span>Sa</span>
-              </label>
-              <label class="day-checkbox">
-                <input type="checkbox" id="day-sunday" ${days.sunday ? 'checked' : ''} />
-                <span>So</span>
-              </label>
+              ${['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].map(day => {
+                const short = day.slice(0,2);
+                return `<label class="day-checkbox"><input type="checkbox" id="day-${day}" ${days[day] ? 'checked' : ''} /><span>${short.charAt(0).toUpperCase()+short.charAt(1)}</span></label>`;
+              }).join('')}
             </div>
-            <div class="daymask-value">
-              Daymask-Wert: ${chargeDayMask}
-            </div>
+            
           </div>
-
           <div class="section">
-            <div class="section-header">Ladesteuerung</div>
+            <div class="section-header">Charging Control</div>
             <button class="charge-toggle-button ${chargingEnabled ? 'active' : ''}" id="charge-toggle">
-              ${chargingEnabled ? 'Laden deaktivieren' : 'Laden aktivieren'}
+              ${chargingEnabled ? 'Disable Charging' : 'Enable Charging'}
             </button>
-            <div class="charge-status">
-              Status: <span class="${chargingEnabled ? 'active' : 'inactive'}">${chargingEnabled ? 'Aktiv' : 'Inaktiv'}</span>
-            </div>
+            <div class="charge-status">Status: <span class="${chargingEnabled ? 'active' : 'inactive'}">${chargingEnabled ? 'Active' : 'Inactive'}</span></div>
           </div>
         </div>
-      </ha-card>
-    `;
-
-    // Add event listeners
+      </ha-card>`;
     this._addEventListeners();
   }
 
-  // Add event listeners to the card elements
   _addEventListeners() {
-    // Time inputs
-    const chargeStartHour = this._content.querySelector('#charge-start-hour');
-    const chargeStartMinute = this._content.querySelector('#charge-start-minute');
-    const chargeEndHour = this._content.querySelector('#charge-end-hour');
-    const chargeEndMinute = this._content.querySelector('#charge-end-minute');
-    
-    // Add event listeners for start time
-    chargeStartHour.addEventListener('change', () => {
-      const hour = chargeStartHour.value.padStart(2, '0');
-      const minute = chargeStartMinute.value.padStart(2, '0');
-      this._setTimeEntity(this._entities.chargeStart, `${hour}:${minute}`);
-    });
-    
-    chargeStartMinute.addEventListener('change', () => {
-      const hour = chargeStartHour.value.padStart(2, '0');
-      const minute = chargeStartMinute.value.padStart(2, '0');
-      this._setTimeEntity(this._entities.chargeStart, `${hour}:${minute}`);
-    });
-    
-    // Add event listeners for end time
-    chargeEndHour.addEventListener('change', () => {
-      const hour = chargeEndHour.value.padStart(2, '0');
-      const minute = chargeEndMinute.value.padStart(2, '0');
-      this._setTimeEntity(this._entities.chargeEnd, `${hour}:${minute}`);
-    });
-    
-    chargeEndMinute.addEventListener('change', () => {
-      const hour = chargeEndHour.value.padStart(2, '0');
-      const minute = chargeEndMinute.value.padStart(2, '0');
-      this._setTimeEntity(this._entities.chargeEnd, `${hour}:${minute}`);
-    });
+    const q = id => this._content.querySelector(id);
+    const getVal = (h, m) => `${h.value.padStart(2, '0')}:${m.value.padStart(2, '0')}`;
 
-    // Power slider
-    const chargePowerSlider = this._content.querySelector('#charge-power');
-    chargePowerSlider.addEventListener('input', (e) => {
-      const value = parseInt(e.target.value);
-      this._content.querySelector('.power-value').textContent = `${value}%`;
-    });
-    
-    chargePowerSlider.addEventListener('change', (e) => {
-      const value = parseInt(e.target.value);
-      this._setNumberEntity(this._entities.chargePower, value);
-    });
+    q('#charge-start-hour').addEventListener('change', () => this._setTimeEntity(this._entities.chargeStart, getVal(q('#charge-start-hour'), q('#charge-start-minute'))));
+    q('#charge-start-minute').addEventListener('change', () => this._setTimeEntity(this._entities.chargeStart, getVal(q('#charge-start-hour'), q('#charge-start-minute'))));
+    q('#charge-end-hour').addEventListener('change', () => this._setTimeEntity(this._entities.chargeEnd, getVal(q('#charge-end-hour'), q('#charge-end-minute'))));
+    q('#charge-end-minute').addEventListener('change', () => this._setTimeEntity(this._entities.chargeEnd, getVal(q('#charge-end-hour'), q('#charge-end-minute'))));
 
-    // Day checkboxes
-    const dayCheckboxes = this._content.querySelectorAll('.day-checkbox input');
-    dayCheckboxes.forEach(checkbox => {
-      checkbox.addEventListener('change', () => {
-        const days = {
-          monday: this._content.querySelector('#day-monday').checked,
-          tuesday: this._content.querySelector('#day-tuesday').checked,
-          wednesday: this._content.querySelector('#day-wednesday').checked,
-          thursday: this._content.querySelector('#day-thursday').checked,
-          friday: this._content.querySelector('#day-friday').checked,
-          saturday: this._content.querySelector('#day-saturday').checked,
-          sunday: this._content.querySelector('#day-sunday').checked
-        };
-        
+    q('#charge-power').addEventListener('input', e => q('.power-value').textContent = `${e.target.value}%`);
+    q('#charge-power').addEventListener('change', e => this._setNumberEntity(this._entities.chargePower, parseInt(e.target.value)));
+
+    ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].forEach(day => {
+      q(`#day-${day}`).addEventListener('change', () => {
+        const days = {};
+        ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].forEach(d => days[d] = q(`#day-${d}`).checked);
         const mask = this._calculateDaymask(days);
-        this._content.querySelector('.daymask-value').textContent = `Daymask-Wert: ${mask}`;
+        
         this._setNumberEntity(this._entities.chargeDayMask, mask);
       });
     });
 
-    // Charge toggle button
-    const chargeToggleButton = this._content.querySelector('#charge-toggle');
-    chargeToggleButton.addEventListener('click', () => {
-      // Get the switch entity
-      const switchEntity = this._hass.states[this._entities.chargingSwitch];
-      
-      // Check if the entity exists
-      if (!switchEntity) {
-        console.error('SAJ H2 Charge Card: Switch entity not found: ' + this._entities.chargingSwitch);
-        return;
-      }
-      
-      // Get the current state, ignoring attributes
-      const currentState = switchEntity.state;
-      const newState = currentState === 'on' ? 'off' : 'on';
-      
-      if (this._debug) {
-        console.log('SAJ H2 Charge Card: Toggling switch from ' + currentState + ' to ' + newState);
-      }
-      
-      // Call the service to toggle the switch
-      this._hass.callService('switch', 'turn_' + newState, {
-        entity_id: this._entities.chargingSwitch
-      });
+    q('#charge-toggle').addEventListener('click', () => {
+      const sw = this._hass.states[this._entities.chargingSwitch];
+      if (!sw) return;
+      const state = sw.state === 'on' ? 'off' : 'on';
+      this._hass.callService('switch', `turn_${state}`, { entity_id: this._entities.chargingSwitch });
     });
   }
 
-  // Calculate daymask from selected days
   _calculateDaymask(days) {
-    let mask = 0;
-    if (days.monday) mask += 1;
-    if (days.tuesday) mask += 2;
-    if (days.wednesday) mask += 4;
-    if (days.thursday) mask += 8;
-    if (days.friday) mask += 16;
-    if (days.saturday) mask += 32;
-    if (days.sunday) mask += 64;
-    return mask;
+    return ['monday','tuesday','wednesday','thursday','friday','saturday','sunday']
+      .reduce((sum, d, i) => sum + (days[d] ? 1 << i : 0), 0);
   }
 
-  // Generate hour options (0-23)
+  _getDaysFromMask(mask) {
+    return ['monday','tuesday','wednesday','thursday','friday','saturday','sunday']
+      .reduce((obj, d, i) => (obj[d] = (mask & (1 << i)) !== 0, obj), {});
+  }
+
   _generateHourOptions(timeString) {
     const hour = this._getHourFromTimeString(timeString);
-    let options = '';
-    
-    for (let i = 0; i < 24; i++) {
-      const selected = i === hour ? 'selected' : '';
-      options += `<option value="${i}" ${selected}>${i}</option>`;
-    }
-    
-    return options;
+    return Array.from({ length: 24 }, (_, i) => `<option value="${i}" ${i === hour ? 'selected' : ''}>${i}</option>`).join('');
   }
-  
-  // Generate minute options (0-59)
+
   _generateMinuteOptions(timeString) {
     const minute = this._getMinuteFromTimeString(timeString);
-    let options = '';
-    
-    for (let i = 0; i < 60; i++) {
-      const selected = i === minute ? 'selected' : '';
-      options += `<option value="${i}" ${selected}>${i}</option>`;
-    }
-    
-    return options;
+    return Array.from({ length: 60 }, (_, i) => `<option value="${i}" ${i === minute ? 'selected' : ''}>${i}</option>`).join('');
   }
-  
-  // Get hour from time string (format: HH:MM)
+
   _getHourFromTimeString(timeString) {
-    if (!timeString || timeString.indexOf(':') === -1) {
-      return 0;
-    }
-    
-    return parseInt(timeString.split(':')[0]) || 0;
+    return timeString?.split(':')[0] | 0;
   }
-  
-  // Get minute from time string (format: HH:MM)
+
   _getMinuteFromTimeString(timeString) {
-    if (!timeString || timeString.indexOf(':') === -1) {
-      return 0;
-    }
-    
-    return parseInt(timeString.split(':')[1]) || 0;
+    return timeString?.split(':')[1] | 0;
   }
 
-  // Get days from daymask
-  _getDaysFromMask(mask) {
-    return {
-      monday: (mask & 1) !== 0,
-      tuesday: (mask & 2) !== 0,
-      wednesday: (mask & 4) !== 0,
-      thursday: (mask & 8) !== 0,
-      friday: (mask & 16) !== 0,
-      saturday: (mask & 32) !== 0,
-      sunday: (mask & 64) !== 0
-    };
-  }
-
-  // Set time entity value
   _setTimeEntity(entityId, value) {
     try {
-      this._hass.callService('text', 'set_value', {
-        entity_id: entityId,
-        value: value
-      });
-      if (this._debug) {
-        console.log(`SAJ H2 Charge Card: Set ${entityId} to ${value}`);
-      }
-    } catch (error) {
-      console.error(`SAJ H2 Charge Card: Error setting ${entityId} to ${value}:`, error);
+      this._hass.callService('text', 'set_value', { entity_id: entityId, value });
+    } catch (e) {
+      console.error(`Error setting ${entityId}:`, e);
     }
   }
 
-  // Set number entity value
   _setNumberEntity(entityId, value) {
     try {
-      this._hass.callService('number', 'set_value', {
-        entity_id: entityId,
-        value: value
-      });
-      if (this._debug) {
-        console.log(`SAJ H2 Charge Card: Set ${entityId} to ${value}`);
-      }
-    } catch (error) {
-      console.error(`SAJ H2 Charge Card: Error setting ${entityId} to ${value}:`, error);
+      this._hass.callService('number', 'set_value', { entity_id: entityId, value });
+    } catch (e) {
+      console.error(`Error setting ${entityId}:`, e);
     }
   }
 
-  // Card styling
   getCardSize() {
     return 4;
   }
 
-  // Load external CSS
   connectedCallback() {
     super.connectedCallback && super.connectedCallback();
-    
-    // Load the CSS file
-    if (!document.getElementById('saj-h2-charge-card-styles')) {
-      const style = document.createElement('link');
-      style.id = 'saj-h2-charge-card-styles';
-      style.rel = 'stylesheet';
-      style.href = '/local/saj-h2-charge-card/saj-h2-charge-card.css';
-      document.head.appendChild(style);
-    }
+    const style = document.createElement('style');
+    style.textContent = `
+      .saj-h2-charge-card {
+        padding: 16px;
+      }
+
+      .card-content {
+        padding: 16px;
+      }
+
+      .section {
+        margin-bottom: 20px;
+      }
+
+      .section-header {
+        font-size: 1.1rem;
+        font-weight: 500;
+        margin-bottom: 10px;
+        color: var(--primary-color);
+      }
+
+      .time-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .time-label {
+        font-weight: 500;
+      }
+
+      .time-select {
+        padding: 4px;
+        border-radius: 4px;
+        border: 1px solid var(--divider-color);
+        background-color: var(--card-background-color);
+        color: var(--primary-text-color);
+        width: 50px;
+        text-align: center;
+      }
+
+      .slider-container {
+        display: flex;
+        align-items: center;
+      }
+
+      input[type="range"] {
+        width: 100%;
+      }
+
+      .power-value {
+        margin-left: 10px;
+        font-weight: bold;
+      }
+
+      .days-selection {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        padding-left: 2.2rem;
+      }
+
+      .day-checkbox {
+        font-size: 8px;
+        padding: 0.05rem 0.2rem;
+        border-radius: 3px;
+        background: var(--secondary-background-color);
+        color: var(--primary-text-color);
+        line-height: 1.1;
+        cursor: pointer;
+      }
+
+      .day-checkbox input {
+        margin-right: 2px;
+      }
+
+      .charge-toggle-button {
+        width: 100%;
+        padding: 12px;
+        border-radius: 4px;
+        border: none;
+        background-color: var(--primary-color);
+        color: white;
+        font-weight: 500;
+        cursor: pointer;
+        margin-bottom: 10px;
+      }
+
+      .charge-toggle-button.active {
+        background-color: var(--error-color);
+      }
+
+      .charge-status {
+        text-align: center;
+      }
+
+      .charge-status .active {
+        color: var(--success-color);
+        font-weight: 500;
+      }
+
+      .charge-status .inactive {
+        color: var(--error-color);
+      }
+
+      .card-error {
+        padding: 16px;
+        color: var(--error-color);
+      }
+    `;
+    this.appendChild(style);
   }
 }
 
-// Register the element with a new name
 customElements.define('saj-h2-charge-card-v3', SajH2ChargeCardV3);
-
-// Add the card to the custom cards list
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: 'saj-h2-charge-card-v3',
   name: 'SAJ H2 Charge Card V3',
-  description: 'Karte zur Steuerung der Ladeeinstellungen für SAJ H2 Wechselrichter (Version 3)'
+  description: 'Card for controlling charging settings for SAJ H2 inverters (Version 3)'
 });

@@ -1,7 +1,7 @@
-# Beispiel für die Einbindung der SAJ H2 Karten in Home Assistant
+# Example for integrating the SAJ H2 cards in Home Assistant
 
-# 1. Dateien in die richtigen Verzeichnisse kopieren
-# Erstelle folgende Verzeichnisstruktur:
+# 1. Copy files to the correct directories
+# Create the following directory structure:
 # /config/www/saj-h2-charge-card/
 #   - saj-h2-charge-card-v3.js
 #   - saj-h2-charge-card.css
@@ -9,23 +9,23 @@
 #   - saj-h2-discharge-card-v1.js
 #   - saj-h2-discharge-card.css
 
-# 2. Ressourcen in der Lovelace-Konfiguration hinzufügen
-# Gehe zu Einstellungen -> Dashboards -> Ressourcen
+# 2. Add resources in the Lovelace configuration
+# Go to Settings -> Dashboards -> Resources
 
-# Für die Ladekarte (NUR die JS-Datei):
+# For the charge card (ONLY the JS file):
 # URL: /local/saj-h2-charge-card/saj-h2-charge-card-v3.js
-# Ressourcentyp: JavaScript-Modul
+# Resource Type: JavaScript Module
 
-# Für die Entladekarte (NUR die JS-Datei):
+# For the discharge card (ONLY the JS file):
 # URL: /local/saj-h2-discharge-card/saj-h2-discharge-card-v1.js
-# Ressourcentyp: JavaScript-Modul
+# Resource Type: JavaScript Module
 
-# Hinweis: Die CSS-Dateien müssen NICHT als Ressourcen hinzugefügt werden.
-# Sie werden automatisch von den JavaScript-Dateien geladen.
+# Note: The CSS files do NOT need to be added as resources.
+# They are automatically loaded by the JavaScript files.
 
-# 3. Karten in einem Dashboard hinzufügen
+# 3. Add cards in a dashboard
 
-# Beispiel für die Ladekarte (saj-h2-charge-card-v3):
+# Example for the charge card (saj-h2-charge-card-v3):
 type: 'custom:saj-h2-charge-card-v3'
 charge_start_entity: text.saj_charge_start_time_time
 charge_end_entity: text.saj_charge_end_time_time
@@ -33,12 +33,12 @@ charge_day_mask_entity: number.saj_charge_day_mask_input
 charge_power_entity: number.saj_charge_power_percent_input
 charging_switch_entity: switch.saj_charging_control
 
-# Beispiel für die Entladekarte (saj-h2-discharge-card-v1):
+# Example for the discharge card (saj-h2-discharge-card-v1):
 type: 'custom:saj-h2-discharge-card-v1'
-# Optional: Konfiguration der Entitäten, falls sie von den Standardwerten abweichen
+# Optional: Configuration of entities, if they differ from the default values
 time_enable_entity: number.saj_discharge_time_enable_input
 discharging_switch_entity: switch.saj_discharging_control
-# Optional: Konfiguration der Zeitslots, falls sie von den Standardwerten abweichen
+# Optional: Configuration of time slots, if they differ from the default values
 discharge_slots:
   - startTime: text.saj_discharge_start_time_time
     endTime: text.saj_discharge_end_time_time
@@ -69,15 +69,15 @@ discharge_slots:
     power: number.saj_discharge7_power_percent_input
     dayMask: number.saj_discharge7_day_mask_input
 
-# Beispiel für ein vollständiges Dashboard mit beiden Karten
-title: SAJ H2 Steuerung
+# Example for a complete dashboard with both cards
+title: SAJ H2 Control
 views:
-  - title: Übersicht
+  - title: Overview
     cards:
       - type: vertical-stack
         cards:
           - type: markdown
-            content: '# SAJ H2 Wechselrichter Steuerung'
+            content: '# SAJ H2 Inverter Control'
           - type: 'custom:saj-h2-charge-card-v3'
             charge_start_entity: text.saj_charge_start_time_time
             charge_end_entity: text.saj_charge_end_time_time
