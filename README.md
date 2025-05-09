@@ -13,18 +13,13 @@ A custom card for Home Assistant to control charging/discharging settings for SA
 
 ## Installation
 
-1. Copy the file `saj-h2-charge-card.js` to the directory `/config/www/saj-h2-charge-card/` of your Home Assistant installation.
+1. Copy the file `saj-h2-charge-card.js` to the directory `/config/www/` of your Home Assistant installation.
 
 2. Add the resource to your Lovelace configuration:
 
    - go to Settings > Dashboards > right upper corner tree dots > Ressources > rigth uper "Add ressources" 
      Path: /local/saj-h2-inverter-card.js
 
-   ```yaml
-   resources:
-     - url: /local/saj-h2-charge-card.js
-       type: module
-   ```
 
 ## Example Configuration
 
