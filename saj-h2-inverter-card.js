@@ -3,25 +3,40 @@
  * Custom card for Home Assistant to control SAJ H2 Inverter charging and discharging settings
  * 
  * @author stanus74
- * @version 1.0.0
+ * @version 1.0.1
  */
 
 class SajH2InverterCard extends HTMLElement {
-  constructor() {
-    super();
-    this._entities = {
+  static get DEFAULT_ENTITIES() {
+    return {
       // Charging entities
-      chargeStart: null,
-      chargeEnd: null,
-      chargeDayMask: null,
-      chargePower: null,
-      chargingSwitch: null,
+      chargeStart: 'text.saj_charge_start_time_time',
+      chargeEnd: 'text.saj_charge_end_time_time',
+      chargeDayMask: 'number.saj_charge_day_mask_input',
+      chargePower: 'number.saj_charge_power_percent_input',
+      chargingSwitch: 'switch.saj_charging_control',
       
       // Discharging entities
-      dischargeSlots: [],
-      timeEnable: null,
-      dischargingSwitch: null
+      dischargeSlots: [
+        { startTime: 'text.saj_discharge_start_time_time', endTime: 'text.saj_discharge_end_time_time', power: 'number.saj_discharge_power_percent_input', dayMask: 'number.saj_discharge_day_mask_input' },
+        { startTime: 'text.saj_discharge2_start_time_time', endTime: 'text.saj_discharge2_end_time_time', power: 'number.saj_discharge2_power_percent_input', dayMask: 'number.saj_discharge2_day_mask_input' },
+        { startTime: 'text.saj_discharge3_start_time_time', endTime: 'text.saj_discharge3_end_time_time', power: 'number.saj_discharge3_power_percent_input', dayMask: 'number.saj_discharge3_day_mask_input' },
+        { startTime: 'text.saj_discharge4_start_time_time', endTime: 'text.saj_discharge4_end_time_time', power: 'number.saj_discharge4_power_percent_input', dayMask: 'number.saj_discharge4_day_mask_input' },
+        { startTime: 'text.saj_discharge5_start_time_time', endTime: 'text.saj_discharge5_end_time_time', power: 'number.saj_discharge5_power_percent_input', dayMask: 'number.saj_discharge5_day_mask_input' },
+        { startTime: 'text.saj_discharge6_start_time_time', endTime: 'text.saj_discharge6_end_time_time', power: 'number.saj_discharge6_power_percent_input', dayMask: 'number.saj_discharge6_day_mask_input' },
+        { startTime: 'text.saj_discharge7_start_time_time', endTime: 'text.saj_discharge7_end_time_time', power: 'number.saj_discharge7_power_percent_input', dayMask: 'number.saj_discharge7_day_mask_input' }
+      ],
+      timeEnable: 'number.saj_discharge_time_enable_input',
+      dischargingSwitch: 'switch.saj_discharging_control'
     };
+  }
+
+  constructor() {
+    super();
+    // Initialize _entities with a deep copy of DEFAULT_ENTITIES.
+    // This ensures that any runtime modifications to this._entities 
+    // do not affect other instances or the static default values.
+    this._entities = JSON.parse(JSON.stringify(SajH2InverterCard.DEFAULT_ENTITIES));
     this._mode = 'both'; // Default mode: both charging and discharging
     this._hass = null;
     this._debug = false;
@@ -30,36 +45,15 @@ class SajH2InverterCard extends HTMLElement {
   // Card configuration
   setConfig(config) {
     // Set mode
-    this._mode = config.mode || 'both';
+    this._mode = config.mode || 'both'; // Default to 'both' if not specified
     
     if (!['charge', 'discharge', 'both'].includes(this._mode)) {
-      throw new Error('Invalid mode. Must be one of: charge, discharge, both');
+      throw new Error(`Invalid mode: ${this._mode}. Must be one of: charge, discharge, both`);
     }
     
-    // Validate required entities based on mode
-    if (this._mode === 'charge' || this._mode === 'both') {
-      if (!config.charge_start_entity || !config.charge_end_entity ||
-          !config.charge_day_mask_entity || !config.charge_power_entity ||
-          !config.charging_switch_entity) {
-        throw new Error('All charging entities must be specified when mode is "charge" or "both".');
-      }
-      
-      this._entities.chargeStart = config.charge_start_entity;
-      this._entities.chargeEnd = config.charge_end_entity;
-      this._entities.chargeDayMask = config.charge_day_mask_entity;
-      this._entities.chargePower = config.charge_power_entity;
-      this._entities.chargingSwitch = config.charging_switch_entity;
-    }
-    
-    if (this._mode === 'discharge' || this._mode === 'both') {
-      if (!config.discharge_slots || !config.time_enable_entity || !config.discharging_switch_entity) {
-        throw new Error('All discharging entities must be specified when mode is "discharge" or "both".');
-      }
-      
-      this._entities.dischargeSlots = config.discharge_slots;
-      this._entities.timeEnable = config.time_enable_entity;
-      this._entities.dischargingSwitch = config.discharging_switch_entity;
-    }
+    // Entities are now hardcoded and initialized in the constructor using DEFAULT_ENTITIES.
+    // The `this._entities` object is already populated with the default entity IDs.
+    // No need to validate or load them from the config object here.
     
     this._initCard();
   }
@@ -137,15 +131,13 @@ class SajH2InverterCard extends HTMLElement {
         
         <div class="subsection">
           <div class="subsection-header">Charging Time</div>
-          <div class="time-row">
-            ${this._renderTimeSelects('charge', chargeStart, chargeEnd)}
-          </div>
-        </div>
-        
-        <div class="subsection">
-          <div class="subsection-header">Charging Power <span class="power-value">${chargePower}%</span></div>
-          <div class="slider-container">
-            <input type="range" id="charge-power" min="0" max="25" step="1" value="${chargePower}" />
+          <div class="time-power-container">
+            <div class="time-power-row">
+              ${this._renderTimeSelects('charge', chargeStart, chargeEnd, chargePower)}
+            </div>
+            <div class="slider-container">
+              <input type="range" id="charge-power" class="power-slider" min="0" max="25" step="1" value="${chargePower}" />
+            </div>
           </div>
         </div>
         
@@ -166,7 +158,8 @@ class SajH2InverterCard extends HTMLElement {
 
   // Render the discharging section
   _renderDischargingSection() {
-    const dischargingSwitchEntity = this._hass.states[this._entities.dischargingSwitch];
+    // Use the specific switch switch.saj_discharging_control for the status
+    const dischargingSwitchEntity = this._hass.states['switch.saj_discharging_control'] || this._hass.states[this._entities.dischargingSwitch];
     const timeEnableEntity = this._hass.states[this._entities.timeEnable];
     
     if (!dischargingSwitchEntity || !timeEnableEntity) {
@@ -234,20 +227,25 @@ class SajH2InverterCard extends HTMLElement {
     
     return `
       <div class="discharge-slot ${slotEnabled ? 'enabled' : 'disabled'}">
-        <div class="slot-row">
+        <div class="slot-header">
           <label class="slot-checkbox">
             <input type="checkbox" id="slot-${slot.index}-enabled" ${slotEnabled ? 'checked' : ''} />
             <span class="slot-number">Slot ${slot.index + 1}</span>
           </label>
-          <div class="time-container">
-            ${this._renderTimeSelects(`slot-${slot.index}`, slot.startTime, slot.endTime)}
-            <input type="number" id="slot-${slot.index}-power" class="power-input" min="0" max="100" step="1" value="${slot.power}" />
-            <span>%</span>
-          </div>
         </div>
-        <div class="days-container">
-          <div class="days-select">
-            ${this._renderDayCheckboxes(`slot-${slot.index}`, slot.dayMask)}
+        <div class="slot-content ${slotEnabled ? 'visible' : 'hidden'}">
+          <div class="time-power-container">
+            <div class="time-power-row">
+              ${this._renderTimeSelects(`slot-${slot.index}`, slot.startTime, slot.endTime, slot.power)}
+            </div>
+            <div class="slider-container">
+              <input type="range" id="slot-${slot.index}-power" class="power-slider" min="0" max="100" step="1" value="${slot.power}" />
+            </div>
+          </div>
+          <div class="days-container">
+            <div class="days-select">
+              ${this._renderDayCheckboxes(`slot-${slot.index}`, slot.dayMask)}
+            </div>
           </div>
         </div>
       </div>
@@ -315,13 +313,15 @@ class SajH2InverterCard extends HTMLElement {
     const dischargingToggle = q('#discharging-toggle');
     if (dischargingToggle) {
       dischargingToggle.addEventListener('click', () => {
-        const sw = this._hass.states[this._entities.dischargingSwitch];
+        // Use the specific switch switch.saj_discharging_control
+        const switchEntity = 'switch.saj_discharging_control';
+        const sw = this._hass.states[switchEntity] || this._hass.states[this._entities.dischargingSwitch];
         if (!sw) return;
         
         // Show wait message
         const statusDisplay = q('.discharging-section .status-display');
         const originalContent = statusDisplay.innerHTML;
-        statusDisplay.innerHTML = '<div class="wait-message">Wait for modbus transfer</div>';
+        statusDisplay.innerHTML = '<div class="wait-message">Waiting for Modbus transfer</div>';
         
         // Restore original content after 2 seconds
         setTimeout(() => {
@@ -329,7 +329,7 @@ class SajH2InverterCard extends HTMLElement {
         }, 2000);
         
         const state = sw.state === 'on' ? 'off' : 'on';
-        this._hass.callService('switch', `turn_${state}`, { entity_id: this._entities.dischargingSwitch });
+        this._hass.callService('switch', `turn_${state}`, { entity_id: switchEntity });
       });
     }
 
@@ -351,16 +351,35 @@ class SajH2InverterCard extends HTMLElement {
             timeEnableValue &= ~bitValue; // Clear bit
           }
           this._setEntityValue(this._entities.timeEnable, timeEnableValue, 'number');
+          
+          // Toggle slot content visibility
+          const slotContent = q(`#slot-${index}-enabled`).closest('.discharge-slot').querySelector('.slot-content');
+          if (slotCheckbox.checked) {
+            slotContent.classList.remove('hidden');
+            slotContent.classList.add('visible');
+          } else {
+            slotContent.classList.remove('visible');
+            slotContent.classList.add('hidden');
+          }
         });
       }
+      
+      // We remove the event listener for the slot header so that only a click on the checkbox itself toggles the checkbox
 
       // Time inputs
       this._setupTimeListeners(`slot-${index}`, slot.startTime, slot.endTime);
       
-      // Power input
-      const powerInput = q(`#slot-${index}-power`);
-      if (powerInput) {
-        powerInput.addEventListener('change', e => {
+      // Power slider
+      const powerSlider = q(`#slot-${index}-power`);
+      if (powerSlider) {
+        powerSlider.addEventListener('input', e => {
+          const powerValue = q(`.discharge-slot:nth-child(${index + 1}) .power-value`);
+          if (powerValue) {
+            powerValue.textContent = `${e.target.value}%`;
+          }
+        });
+        
+        powerSlider.addEventListener('change', e => {
           const value = parseInt(e.target.value);
           this._setEntityValue(slot.power, value, 'number');
         });
@@ -396,16 +415,35 @@ class SajH2InverterCard extends HTMLElement {
     }
   }
 
-  // Simplified render methods
-  _renderTimeSelects(prefix, startTime, endTime) {
+  // Render time selects with improved styling
+  _renderTimeSelects(prefix, startTime, endTime, powerValue = null) {
     const start = this._parseTime(startTime);
     const end = this._parseTime(endTime);
     return `
-      <select id="${prefix}-start-hour" class="time-select">${this._generateTimeOptions('hour', start.hour)}</select>:
-      <select id="${prefix}-start-minute" class="time-select">${this._generateTimeOptions('minute', start.minute)}</select>
-      <span class="time-separator">-</span>
-      <select id="${prefix}-end-hour" class="time-select">${this._generateTimeOptions('hour', end.hour)}</select>:
-      <select id="${prefix}-end-minute" class="time-select">${this._generateTimeOptions('minute', end.minute)}</select>
+      <div class="time-box-container">
+        <div class="time-box start-time">
+          <div class="time-box-label">Start</div>
+          <div class="time-selects">
+            <select id="${prefix}-start-hour" class="time-select">${this._generateTimeOptions('hour', start.hour)}</select>
+            <span class="time-colon">:</span>
+            <select id="${prefix}-start-minute" class="time-select">${this._generateTimeOptions('minute', start.minute)}</select>
+          </div>
+        </div>
+        <div class="time-box end-time">
+          <div class="time-box-label">End</div>
+          <div class="time-selects">
+            <select id="${prefix}-end-hour" class="time-select">${this._generateTimeOptions('hour', end.hour)}</select>
+            <span class="time-colon">:</span>
+            <select id="${prefix}-end-minute" class="time-select">${this._generateTimeOptions('minute', end.minute)}</select>
+          </div>
+        </div>
+        <div class="time-box power-time">
+          <div class="time-box-label">Power</div>
+          <div class="power-placeholder">
+            ${powerValue !== null ? `<span class="power-value">${powerValue}%</span>` : ''}
+          </div>
+        </div>
+      </div>
     `;
   }
 
@@ -420,12 +458,23 @@ class SajH2InverterCard extends HTMLElement {
   }
 
   _renderStatusButton(enabled, pending, type) {
+    // Adjusted texts for discharging status
+    let buttonText, statusText;
+    
+    if (type === 'discharging') {
+      buttonText = enabled ? 'Disable Discharging' : 'Enable Discharging';
+      statusText = pending ? 'Transfer pending...' : (enabled ? 'Discharging active' : 'Discharging inactive');
+    } else { // 'charging'
+      buttonText = enabled ? 'Disable Charging' : 'Enable Charging';
+      statusText = pending ? 'Pending write...' : (enabled ? 'Charging active' : 'Charging inactive');
+    }
+    
     return `
       <button class="control-button ${enabled ? 'active' : ''}" id="${type}-toggle">
-        ${enabled ? 'Disable' : 'Enable'} ${type.charAt(0).toUpperCase() + type.slice(1)}
+        ${buttonText}
       </button>
       <div class="status-display">
-        Status: <span class="status-value ${enabled ? 'active' : 'inactive'}">${pending ? 'Pending write...' : (enabled ? 'Active' : 'Inactive')}</span>
+        Status: <span class="status-value ${enabled ? 'active' : 'inactive'}">${statusText}</span>
         ${pending ? '<div class="wait-message">Wait for modbus transfer</div>' : ''}
       </div>
     `;
@@ -494,318 +543,98 @@ class SajH2InverterCard extends HTMLElement {
     // Add CSS directly to the card
     const style = document.createElement('style');
     style.textContent = `
-      .saj-h2-inverter-card {
-        padding: 16px;
-      }
-      
-      .card-content {
-        padding: 16px;
-      }
-      
-      .section {
-        margin-bottom: 24px;
-      }
-      
-      .section:last-child {
-        margin-bottom: 0;
-      }
-      
-      .section-header {
-        font-size: 1.2rem;
-        font-weight: 500;
-        margin-bottom: 16px;
-        color: var(--primary-color);
-        border-bottom: 1px solid var(--divider-color);
-        padding-bottom: 8px;
-      }
-      
-      .subsection {
-        margin-bottom: 16px;
-      }
-      
-      .subsection:last-child {
-        margin-bottom: 0;
-      }
-      
-      .subsection-header {
-        font-size: 1.1rem;
-        font-weight: 500;
-        margin-bottom: 8px;
-        color: var(--primary-text-color);
-      }
-
-      /* Time row */
-      .time-row {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        flex-wrap: wrap;
-        margin-bottom: 10px;
-      }
-
-      /* Time select */
-      .time-select {
-        padding: 4px;
-        border-radius: 4px;
+      .saj-h2-inverter-card, .card-content { padding: 16px; }
+      .section { margin-bottom: 24px; }
+      .charging-section, .discharging-section {
         border: 1px solid var(--divider-color);
-        background-color: var(--card-background-color);
-        color: var(--primary-text-color);
-        width: 50px;
-        text-align: center;
-        font-size: 1.1em;
+        border-radius: 12px; /* Rounded corners */
+        padding: 16px; /* Inner padding */
+        background-color: var(--card-background-color); /* Ensure background for the box */
+        /* margin-bottom is inherited from .section or can be adjusted if needed */
       }
+      .section-header { font-size: 1.25rem; font-weight: 500; margin-bottom: 16px; color: var(--primary-color); border-bottom: 1px solid var(--divider-color); padding-bottom: 8px; letter-spacing: 0.5px; }
+      .subsection { margin-bottom: 20px; /* Removed padding-left: 8px; and border-left: 2px solid var(--divider-color); */ }
+      .subsection-header { font-size: 1.1rem; font-weight: 500; margin-bottom: 10px; color: var(--primary-text-color); }
+      
+      /* Time box container */
+      .time-box-container { display: flex; align-items: flex-end; /* Align boxes at the bottom */ justify-content: space-between; width: 95%; /* Increased width slightly */ background-color: var(--secondary-background-color); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); gap: 2%; /* Add gap between boxes */ }
+      .time-box { display: flex; flex-direction: column; align-items: center; width: 32%; /* Divide into roughly thirds, considering gap */ }
+      .start-time, .end-time { /* Removed width: 40%; */ }
+      .power-time { /* Removed width: 20%; */ display: flex; flex-direction: column; align-items: center; /* Center content horizontally */ /* Removed justify-content: flex-end; as parent align-items handles bottom alignment */ }
+      .power-placeholder { display: flex; align-items: center; justify-content: center; width: auto; /* Let content size dictate width */ /* Removed min-width */ }
+      .time-box-label { font-size: 0.9em; font-weight: 500; margin-bottom: 6px; color: var(--secondary-text-color); text-transform: uppercase; letter-spacing: 0.5px; }
+      .time-selects { display: flex; align-items: center; background-color: var(--input-fill-color, var(--card-background-color)); border-radius: 8px; padding: 6px 0px; /* Restored padding */ box-shadow: inset 0 1px 2px rgba(0,0,0,0.08); border: 1px solid var(--input-ink-color, var(--divider-color)); min-height: 30px; /* Ensure a minimum height */}
+      .time-select { padding: 6px; border: none; background-color: transparent; color: var(--primary-text-color); width: 45px; text-align: center; font-size: 1.15em; font-weight: 500; -webkit-appearance: none; -moz-appearance: none; appearance: none; cursor: pointer; }
+      .time-colon { font-weight: bold; color: var(--primary-color); margin: 0 4px; font-size: 1.1em; }
 
-      /* Slider container */
-      .slider-container {
-        display: flex;
-        align-items: center;
-        width: 100%;
-      }
+      /* Removed Time Separator - not used */
 
-      input[type="range"] {
-        width: 100%;
-        margin: 8px 0;
-      }
+      .time-row, .days-selection, .discharge-slots, .slot-row, .days-select { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+      .time-power-container { display: flex; flex-direction: column; margin-bottom: 12px; }
+      .time-power-row { display: flex; align-items: center; justify-content: flex-start; gap: 16px; margin-bottom: 12px; }
+      .power-value { font-size: 1.15em; /* Match font-size of time-select */ font-weight: 500; padding: 12px 10px; /* Match time-selects padding */ background-color: var(--input-fill-color, var(--card-background-color)); border-radius: 8px; /* Match time-selects */ text-align: center; border: 1px solid var(--input-ink-color, var(--divider-color)); /* Match time-selects */ display: inline-block; min-height: 30px; /* Ensure a minimum height */ line-height: normal; /* Adjust if needed for vertical centering with padding */ box-sizing: border-box; /* Include padding and border in the element's total width and height */ min-width: 80px; /* Set minimum width */ }
+      .day-checkbox, .slot-checkbox { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+      .day-checkbox span { font-size: 1.05em; } /* Increased font size for day labels */
+      .day-checkbox input[type="checkbox"], .slot-checkbox input[type="checkbox"] { transform: scale(1.1); margin-right: 4px; }
 
-      /* Days selection */
-      .days-selection {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-      }
+      .control-button { width: 100%; padding: 14px; font-size: 1.15rem; border-radius: 8px; border: none; background-color: var(--primary-color); color: var(--text-primary-color-on-primary, white); font-weight: 500; cursor: pointer; margin-bottom: 10px; transition: background-color 0.2s ease, transform 0.1s ease; }
+      .control-button:hover { background-color: var(--state-active-color, var(--primary-color)); filter: brightness(110%); }
+      .control-button:active { transform: scale(0.98); }
+      .control-button.active { background-color: var(--error-color); }
+      .control-button.active:hover { filter: brightness(110%); }
 
-      .day-checkbox {
-        font-size: 0.9em;
-        padding: 0.2rem 0.4rem;
-        border-radius: 3px;
-        background: var(--secondary-background-color);
-        color: var(--primary-text-color);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-      }
+      .discharge-slot { padding: 16px; border-radius: 8px; background-color: var(--secondary-background-color); border-left: 5px solid var(--primary-color); margin-bottom: 10px; width: 95%; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+      .discharge-slot.disabled { border-left-color: var(--disabled-text-color); }
+      .slot-header { cursor: pointer; padding: 4px 0; }
+      .slot-content { margin-top: 12px; overflow: hidden; transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out; }
+      .slot-content.visible { max-height: 500px; opacity: 1; }
+      .slot-content.hidden { max-height: 0; opacity: 0; margin-top: 0; }
+      .power-slider { width: 100%; margin: 8px 0; }
+      .wait-message { font-weight: 500; color: var(--warning-color); padding: 8px; background-color: rgba(255, 152, 0, 0.2); border-radius: 4px; text-align: center; margin-top: 8px; animation: pulse 1.5s infinite; }
+      @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
 
-      .day-checkbox input {
-        margin: 0;
-      }
-      
-      /* Time display */
-      .time-display {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 16px;
-      }
-      
-      .time-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      
-      .time-label {
-        font-weight: 500;
-      }
-      
-      .time-value {
-        font-size: 1.1em;
-        padding: 4px 8px;
-        background-color: var(--secondary-background-color);
-        border-radius: 4px;
-      }
-      
-      /* Power display */
-      .power-display {
-        display: flex;
-        align-items: center;
-      }
-      
-      .power-value {
-        font-size: 1.1em;
-        font-weight: 500;
-        padding: 4px 8px;
-        background-color: var(--secondary-background-color);
-        border-radius: 4px;
-      }
-      
-      /* Days display */
-      .days-display {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-      }
-      
-      .day-indicator {
-        display: inline-block;
-        width: 30px;
-        text-align: center;
-        padding: 4px 0;
-        border-radius: 4px;
-        font-size: 0.9em;
-        font-weight: 500;
-      }
-      
-      .day-indicator.active {
-        background-color: var(--primary-color);
-        color: white;
-      }
-      
-      .day-indicator.inactive {
-        background-color: var(--secondary-background-color);
-        color: var(--disabled-text-color);
-      }
-      
-      /* Control button */
-      .control-button {
-        width: 100%;
-        padding: 12px;
-        border-radius: 4px;
-        border: none;
-        background-color: var(--primary-color);
-        color: white;
-        font-weight: 500;
-        cursor: pointer;
-        margin-bottom: 8px;
-        font-size: 1em;
-      }
-      
-      .control-button.active {
-        background-color: var(--error-color);
-      }
-      
-      /* Status display */
-      .status-display {
-        text-align: center;
-        font-size: 0.9em;
-      }
-      
-      .status-value.active {
-        color: var(--success-color);
-        font-weight: 500;
-      }
-      
-      .status-value.inactive {
-        color: var(--error-color);
-      }
-      
-      /* Discharge slots */
-      .discharge-slots {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
-      
-      .discharge-slot {
-        padding: 12px;
-        border-radius: 4px;
-        background-color: var(--secondary-background-color);
-        border-left: 4px solid var(--primary-color);
-      }
-      
-      .discharge-slot.disabled {
-        border-left-color: var(--disabled-text-color);
-        opacity: 0.7;
-      }
-      
-      .slot-row {
-        display: flex;
-        flex-direction: column;
-        margin-bottom: 8px;
-      }
-      
-      .slot-checkbox {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 8px;
-        cursor: pointer;
-      }
-      
-      .time-container {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 4px;
-        margin-bottom: 8px;
-      }
-      
-      .time-separator {
-        margin: 0 4px;
-      }
-      
-      .power-input {
-        width: 50px;
-        padding: 4px;
-        border-radius: 4px;
-        border: 1px solid var(--divider-color);
-        background-color: var(--card-background-color);
-        color: var(--primary-text-color);
-        text-align: center;
-        margin: 0 4px;
-        font-size: 1.1em;
-      }
-      
-      .days-container {
-        margin-top: 8px;
-      }
-      
-      .days-select {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-      }
-      
-      .days-select label {
-        font-size: 0.9em;
-        padding: 0.2rem 0.4rem;
-        border-radius: 3px;
-        background: var(--secondary-background-color);
-        color: var(--primary-text-color);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-      }
-      
-      .days-select input {
-        margin: 0;
-      }
-      
-      /* Error display */
-      .card-error {
-        padding: 16px;
-        color: var(--error-color);
-        background-color: var(--error-color-translucent);
-        border-radius: 4px;
-        margin-bottom: 16px;
-      }
-      
-      .card-error h2 {
-        margin-top: 0;
-        margin-bottom: 8px;
-        font-size: 1.1em;
-      }
-      
-      .card-error p {
-        margin: 0;
-      }
-      
-      /* Wait message */
-      .wait-message {
-        font-weight: 500;
-        color: var(--warning-color);
-        padding: 8px;
-        background-color: var(--warning-color-translucent, rgba(255, 152, 0, 0.2));
-        border-radius: 4px;
-        text-align: center;
-        margin-top: 8px;
-        animation: pulse 1.5s infinite;
-      }
-      
-      @keyframes pulse {
-        0% { opacity: 0.6; }
-        50% { opacity: 1; }
-        100% { opacity: 0.6; }
+      /* Responsive adjustments for smaller screens (like phones) */
+      @media (max-width: 450px) {
+        .time-box-container {
+          flex-direction: column; /* Stack time boxes vertically */
+          align-items: stretch; /* Stretch boxes to full width */
+          width: 100%; /* Use full width */
+          padding: 10px;
+          gap: 12px; /* Add gap between stacked boxes */
+        }
+        .time-box {
+          width: 100%; /* Make each box take full width */
+          align-items: center; /* Center content within the box */
+        }
+        .power-time {
+           align-items: center; /* Ensure power content is centered */
+        }
+        .time-selects {
+           justify-content: center; /* Center the time selects within their box */
+           padding: 6px 5px; /* Adjust padding slightly if needed */
+        }
+         .power-placeholder {
+           justify-content: center; /* Center the power value */
+           width: 100%;
+        }
+        .power-value {
+           min-width: 70px; /* Adjust min-width for phone screens */
+           padding: 6px 8px; /* Adjust padding */
+        }
+        .days-selection, .days-select {
+          justify-content: center; /* Center day checkboxes */
+          gap: 6px; /* Reduce gap */
+        }
+        .day-checkbox span {
+          font-size: 0.9em; /* Slightly smaller text for days */
+        }
+        .discharge-slot {
+          width: 100%; /* Ensure slots take full width */
+          padding: 12px; /* Adjust padding */
+        }
+        .section-header { font-size: 1.15rem; }
+        .subsection-header { font-size: 1.05rem; }
+        .control-button { font-size: 1.1rem; padding: 12px; }
       }
     `;
     this.appendChild(style);
