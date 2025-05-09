@@ -30,59 +30,12 @@ A custom card for Home Assistant to control charging/discharging settings for SA
 
 ### Only Charging Card
    ```yaml
-   title: SAJ H2 Inverter Control
-   type: custom:saj-h2-inverter-card
-   mode: charge  # or discharge or both
-   charge_start_entity: text.saj_charge_start_time_time
-   charge_end_entity: text.saj_charge_end_time_time
-   charge_day_mask_entity: number.saj_charge_day_mask_input
-   charge_power_entity: number.saj_charge_power_percent_input
-   charging_switch_entity: switch.saj_charging_control
+title: SAJ H2 Inverter Control
+type: custom:saj-h2-inverter-card
+mode: both #charge or discharge
    ```
 
 
-### Full Configuration
-```yaml
-title: SAJ H2 Inverter Control
-type: custom:saj-h2-inverter-card
-mode: both
-charge_start_entity: text.saj_charge_start_time_time
-charge_end_entity: text.saj_charge_end_time_time
-charge_day_mask_entity: number.saj_charge_day_mask_input
-charge_power_entity: number.saj_charge_power_percent_input
-charging_switch_entity: switch.saj_charging_control
-discharge_slots:
-  - startTime: text.saj_discharge_start_time_time
-    endTime: text.saj_discharge_end_time_time
-    power: number.saj_discharge_power_percent_input
-    dayMask: number.saj_discharge_day_mask_input
-  - startTime: text.saj_discharge2_start_time_time
-    endTime: text.saj_discharge2_end_time_time
-    power: number.saj_discharge2_power_percent_input
-    dayMask: number.saj_discharge2_day_mask_input
-  - startTime: text.saj_discharge3_start_time_time
-    endTime: text.saj_discharge3_end_time_time
-    power: number.saj_discharge3_power_percent_input
-    dayMask: number.saj_discharge3_day_mask_input
-  - startTime: text.saj_discharge4_start_time_time
-    endTime: text.saj_discharge4_end_time_time
-    power: number.saj_discharge4_power_percent_input
-    dayMask: number.saj_discharge4_day_mask_input
-  - startTime: text.saj_discharge5_start_time_time
-    endTime: text.saj_discharge5_end_time_time
-    power: number.saj_discharge5_power_percent_input
-    dayMask: number.saj_discharge5_day_mask_input
-  - startTime: text.saj_discharge6_start_time_time
-    endTime: text.saj_discharge6_end_time_time
-    power: number.saj_discharge6_power_percent_input
-    dayMask: number.saj_discharge6_day_mask_input
-  - startTime: text.saj_discharge7_start_time_time
-    endTime: text.saj_discharge7_end_time_time
-    power: number.saj_discharge7_power_percent_input
-    dayMask: number.saj_discharge7_day_mask_input
-time_enable_entity: number.saj_discharge_time_enable_input
-discharging_switch_entity: switch.saj_discharging_control
-```
 
 ## Troubleshooting
 
