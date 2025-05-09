@@ -34,7 +34,13 @@ type: custom:saj-h2-inverter-card
 mode: both #charge or discharge
    ```
 
+## Screenshots
 
+**Charge Card:**
+![Charge Card](charge.png)
+
+**Discharge Card:**
+![Discharge Card](discharge.png)
 
 ## Troubleshooting
 
