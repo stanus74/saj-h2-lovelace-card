@@ -28,7 +28,7 @@ A custom card for Home Assistant to control charging/discharging settings for SA
 
 ## Example Configuration
 
-### Only Charging Card
+### Charging and Discharging Card
    ```yaml
 title: SAJ H2 Inverter Control
 type: custom:saj-h2-inverter-card
