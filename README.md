@@ -2,6 +2,10 @@
 
 A custom card for Home Assistant to control charging/discharging settings for SAJ H2 inverters.
 
+This card needs the SAJ H2 Modbus Integration
+
+https://github.com/stanus74/home-assistant-saj-h2-modbus
+
 ## Features
 
 - Easy setting of charge start and end time
