@@ -37,9 +37,11 @@ mode: both #charge or discharge
 ## Screenshots
 
 **Charge Card:**
+
 ![Charge Card](charge.png)
 
 **Discharge Card:**
+
 ![Discharge Card](discharge.png)
 
 ## Troubleshooting
