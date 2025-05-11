@@ -23,6 +23,8 @@ https://github.com/stanus74/home-assistant-saj-h2-modbus
 
    - go to Settings > Dashboards > right upper corner tree dots > Ressources > rigth uper "Add ressources" 
      Path: /local/saj-h2-inverter-card.js
+      
+     **after added, press Strg+Shift+R to make hard browser refresh**
 
 
 ## Example Configuration
@@ -33,6 +35,8 @@ title: SAJ H2 Inverter Control
 type: custom:saj-h2-inverter-card
 mode: both #charge or discharge
    ```
+
+ **after added, press Strg+Shift+R to make hard browser refresh**
 
 ## Screenshots
 
