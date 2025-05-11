@@ -3,7 +3,7 @@
  * Custom card for Home Assistant to control SAJ H2 Inverter charging and discharging settings
  * 
  * @author stanus74
- * @version 1.0.2
+ * @version 1.0.3
  */
 
 class SajH2InverterCard extends HTMLElement {
@@ -415,26 +415,23 @@ class SajH2InverterCard extends HTMLElement {
     }
   }
 
-  // Render time selects with improved styling
+  // Render time inputs with simple visible inputs
   _renderTimeSelects(prefix, startTime, endTime, powerValue = null) {
-    const start = this._parseTime(startTime);
-    const end = this._parseTime(endTime);
+    const start = startTime || '00:00';
+    const end = endTime || '00:00';
+    
     return `
       <div class="time-box-container">
         <div class="time-box start-time">
           <div class="time-box-label">Start</div>
-          <div class="time-selects">
-            <select id="${prefix}-start-hour" class="time-select">${this._generateTimeOptions('hour', start.hour)}</select>
-            <span class="time-colon">:</span>
-            <select id="${prefix}-start-minute" class="time-select">${this._generateTimeOptions('minute', start.minute)}</select>
+          <div class="time-input-container">
+            <input type="time" id="${prefix}-start-time" class="time-input" value="${start}" step="300" />
           </div>
         </div>
         <div class="time-box end-time">
           <div class="time-box-label">End</div>
-          <div class="time-selects">
-            <select id="${prefix}-end-hour" class="time-select">${this._generateTimeOptions('hour', end.hour)}</select>
-            <span class="time-colon">:</span>
-            <select id="${prefix}-end-minute" class="time-select">${this._generateTimeOptions('minute', end.minute)}</select>
+          <div class="time-input-container">
+            <input type="time" id="${prefix}-end-time" class="time-input" value="${end}" step="300" />
           </div>
         </div>
         <div class="time-box power-time">
@@ -480,44 +477,36 @@ class SajH2InverterCard extends HTMLElement {
     `;
   }
 
-  // Simplified event listener setup with Chrome stability improvements
+  // Simple time listeners for visible inputs
   _setupTimeListeners(prefix, startEntity, endEntity) {
     const q = id => this._content.querySelector(id);
-    ['start', 'end'].forEach(type => {
-      ['hour', 'minute'].forEach(unit => {
-        const selectElement = q(`#${prefix}-${type}-${unit}`);
-        if (selectElement) {
-          // Add a class to help with CSS targeting
-          selectElement.classList.add('chrome-select-fix');
-          
-          // Use a simple click handler that just stops propagation
-          selectElement.addEventListener('click', (event) => {
-            event.stopPropagation();
-          });
-          
-          // Add a mousedown handler that only stops propagation
-          selectElement.addEventListener('mousedown', (event) => {
-            event.stopPropagation();
-          });
-          
-          // Add a special blur handler with delay to keep dropdown open longer
-          selectElement.addEventListener('blur', (event) => {
-            // Prevent immediate closing by delaying any actions on blur
-            setTimeout(() => {
-              // This timeout helps Chrome keep the dropdown open longer
-            }, 300);
-          });
+    
+    // Helper function to setup listener for a time input
+    const setupInputListener = (inputId, entity) => {
+      const inputElement = q(`#${inputId}`);
+      if (inputElement) {
+        // Handle value changes
+        inputElement.addEventListener('change', (event) => {
+          this._setEntityValue(entity, event.target.value);
+        });
 
-          // Handle change event
-          selectElement.addEventListener('change', () => {
-            const entity = type === 'start' ? startEntity : endEntity;
-            const h = q(`#${prefix}-${type}-hour`).value.padStart(2, '0');
-            const m = q(`#${prefix}-${type}-minute`).value.padStart(2, '0');
-            this._setEntityValue(entity, `${h}:${m}`);
+        // Handle click on the container to open the picker
+        const container = inputElement.closest('.time-input-container');
+        if (container) {
+          container.addEventListener('click', () => {
+            if (typeof inputElement.showPicker === 'function') {
+              inputElement.showPicker();
+            }
           });
         }
-      });
-    });
+      }
+    };
+    
+    // Setup start time input
+    setupInputListener(`${prefix}-start-time`, startEntity);
+    
+    // Setup end time input
+    setupInputListener(`${prefix}-end-time`, endEntity);
   }
 
   _setupDayListeners(prefix, dayMaskEntity) {
@@ -588,65 +577,44 @@ class SajH2InverterCard extends HTMLElement {
       .power-time { /* Removed width: 20%; */ display: flex; flex-direction: column; align-items: center; /* Center content horizontally */ /* Removed justify-content: flex-end; as parent align-items handles bottom alignment */ }
       .power-placeholder { display: flex; align-items: center; justify-content: center; width: auto; /* Let content size dictate width */ /* Removed min-width */ }
       .time-box-label { font-size: 0.9em; font-weight: 500; margin-bottom: 6px; color: var(--secondary-text-color); text-transform: uppercase; letter-spacing: 0.5px; }
-      .time-selects { display: flex; align-items: center; background-color: var(--input-fill-color, var(--card-background-color)); border-radius: 8px; padding: 6px 0px; /* Restored padding */ box-shadow: inset 0 1px 2px rgba(0,0,0,0.08); border: 1px solid var(--input-ink-color, var(--divider-color)); min-height: 30px; /* Ensure a minimum height */}
-      /* Improved time select styling with Chrome-specific fixes */
-      .time-select { 
-        padding: 6px; 
-        border: none; 
-        background-color: transparent; 
-        color: var(--primary-text-color); 
-        width: 45px; 
-        text-align: center; 
-        font-size: 1.15em; 
-        font-weight: 500; 
-        -webkit-appearance: none; 
-        -moz-appearance: none; 
-        appearance: none; 
-        cursor: pointer;
-        /* Chrome-specific fixes to keep dropdown open longer */
-        transition: background-color 0.3s ease;
+      /* Time input wrapper */
+      /* Time input container */
+      .time-input-container {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--input-fill-color, var(--card-background-color));
+        border-radius: 8px;
+        border: 1px solid var(--input-ink-color, var(--divider-color));
+        padding: 0;
+        overflow: hidden;
       }
       
-      /* Special Chrome fixes to prevent dropdown from closing too quickly */
-      .chrome-select-fix {
-        /* Force Chrome to render the dropdown differently */
-        transform: translateZ(0);
-        /* Increase specificity for Chrome */
-        z-index: 1;
-        /* Force Chrome to use system colors for dropdown */
+      /* Time input styling */
+      .time-input {
+        width: 100%;
+        padding: 10px;
+        border: none;
+        background-color: transparent;
+        color: var(--primary-text-color);
+        font-size: 1.15em;
+        font-weight: 500;
+        text-align: center;
+        cursor: pointer;
+        /* Support for dark mode */
         color-scheme: light dark;
       }
       
-      /* Highlight on hover to improve usability */
-      .time-select:hover {
-        background-color: rgba(var(--rgb-primary-color, 33, 150, 243), 0.1);
-      }
-      
-      /* Keep dropdown open longer in Chrome */
-      .time-select:focus {
+      /* Focus effect for time input */
+      .time-input:focus {
         outline: none;
-        box-shadow: 0 0 0 2px rgba(var(--rgb-primary-color, 33, 150, 243), 0.4);
-        /* This helps Chrome keep the dropdown open */
-        animation: keepDropdownOpen 0.01s linear 0.3s;
       }
       
-      /* Force dark mode for Chrome dropdowns */
-      @media (prefers-color-scheme: dark) {
-        .time-select option {
-          background-color: var(--card-background-color, #121212);
-          color: var(--primary-text-color, #ffffff);
-        }
-      }
-      
-      /* Ensure dropdown background matches theme in Chrome */
-      .time-select option {
-        background-color: var(--card-background-color, #ffffff);
-        color: var(--primary-text-color, #000000);
-      }
-      
-      @keyframes keepDropdownOpen {
-        0% { opacity: 1; }
-        100% { opacity: 1; }
+      /* Hover effect for time input container */
+      .time-input-container:hover {
+        background-color: rgba(var(--rgb-primary-color, 33, 150, 243), 0.1);
+        border-color: var(--primary-color);
       }
       .time-colon { font-weight: bold; color: var(--primary-color); margin: 0 4px; font-size: 1.1em; }
 
