@@ -3,7 +3,7 @@
  * Custom card for Home Assistant to control SAJ H2 Inverter charging and discharging settings
  * 
  * @author stanus74
- * @version 1.0.1
+ * @version 1.0.2
  */
 
 class SajH2InverterCard extends HTMLElement {
@@ -480,17 +480,42 @@ class SajH2InverterCard extends HTMLElement {
     `;
   }
 
-  // Simplified event listener setup
+  // Simplified event listener setup with Chrome stability improvements
   _setupTimeListeners(prefix, startEntity, endEntity) {
     const q = id => this._content.querySelector(id);
     ['start', 'end'].forEach(type => {
       ['hour', 'minute'].forEach(unit => {
-        q(`#${prefix}-${type}-${unit}`)?.addEventListener('change', () => {
-          const entity = type === 'start' ? startEntity : endEntity;
-          const h = q(`#${prefix}-${type}-hour`).value.padStart(2, '0');
-          const m = q(`#${prefix}-${type}-minute`).value.padStart(2, '0');
-          this._setEntityValue(entity, `${h}:${m}`);
-        });
+        const selectElement = q(`#${prefix}-${type}-${unit}`);
+        if (selectElement) {
+          // Add a class to help with CSS targeting
+          selectElement.classList.add('chrome-select-fix');
+          
+          // Use a simple click handler that just stops propagation
+          selectElement.addEventListener('click', (event) => {
+            event.stopPropagation();
+          });
+          
+          // Add a mousedown handler that only stops propagation
+          selectElement.addEventListener('mousedown', (event) => {
+            event.stopPropagation();
+          });
+          
+          // Add a special blur handler with delay to keep dropdown open longer
+          selectElement.addEventListener('blur', (event) => {
+            // Prevent immediate closing by delaying any actions on blur
+            setTimeout(() => {
+              // This timeout helps Chrome keep the dropdown open longer
+            }, 300);
+          });
+
+          // Handle change event
+          selectElement.addEventListener('change', () => {
+            const entity = type === 'start' ? startEntity : endEntity;
+            const h = q(`#${prefix}-${type}-hour`).value.padStart(2, '0');
+            const m = q(`#${prefix}-${type}-minute`).value.padStart(2, '0');
+            this._setEntityValue(entity, `${h}:${m}`);
+          });
+        }
       });
     });
   }
@@ -564,7 +589,65 @@ class SajH2InverterCard extends HTMLElement {
       .power-placeholder { display: flex; align-items: center; justify-content: center; width: auto; /* Let content size dictate width */ /* Removed min-width */ }
       .time-box-label { font-size: 0.9em; font-weight: 500; margin-bottom: 6px; color: var(--secondary-text-color); text-transform: uppercase; letter-spacing: 0.5px; }
       .time-selects { display: flex; align-items: center; background-color: var(--input-fill-color, var(--card-background-color)); border-radius: 8px; padding: 6px 0px; /* Restored padding */ box-shadow: inset 0 1px 2px rgba(0,0,0,0.08); border: 1px solid var(--input-ink-color, var(--divider-color)); min-height: 30px; /* Ensure a minimum height */}
-      .time-select { padding: 6px; border: none; background-color: transparent; color: var(--primary-text-color); width: 45px; text-align: center; font-size: 1.15em; font-weight: 500; -webkit-appearance: none; -moz-appearance: none; appearance: none; cursor: pointer; }
+      /* Improved time select styling with Chrome-specific fixes */
+      .time-select { 
+        padding: 6px; 
+        border: none; 
+        background-color: transparent; 
+        color: var(--primary-text-color); 
+        width: 45px; 
+        text-align: center; 
+        font-size: 1.15em; 
+        font-weight: 500; 
+        -webkit-appearance: none; 
+        -moz-appearance: none; 
+        appearance: none; 
+        cursor: pointer;
+        /* Chrome-specific fixes to keep dropdown open longer */
+        transition: background-color 0.3s ease;
+      }
+      
+      /* Special Chrome fixes to prevent dropdown from closing too quickly */
+      .chrome-select-fix {
+        /* Force Chrome to render the dropdown differently */
+        transform: translateZ(0);
+        /* Increase specificity for Chrome */
+        z-index: 1;
+        /* Force Chrome to use system colors for dropdown */
+        color-scheme: light dark;
+      }
+      
+      /* Highlight on hover to improve usability */
+      .time-select:hover {
+        background-color: rgba(var(--rgb-primary-color, 33, 150, 243), 0.1);
+      }
+      
+      /* Keep dropdown open longer in Chrome */
+      .time-select:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(var(--rgb-primary-color, 33, 150, 243), 0.4);
+        /* This helps Chrome keep the dropdown open */
+        animation: keepDropdownOpen 0.01s linear 0.3s;
+      }
+      
+      /* Force dark mode for Chrome dropdowns */
+      @media (prefers-color-scheme: dark) {
+        .time-select option {
+          background-color: var(--card-background-color, #121212);
+          color: var(--primary-text-color, #ffffff);
+        }
+      }
+      
+      /* Ensure dropdown background matches theme in Chrome */
+      .time-select option {
+        background-color: var(--card-background-color, #ffffff);
+        color: var(--primary-text-color, #000000);
+      }
+      
+      @keyframes keepDropdownOpen {
+        0% { opacity: 1; }
+        100% { opacity: 1; }
+      }
       .time-colon { font-weight: bold; color: var(--primary-color); margin: 0 4px; font-size: 1.1em; }
 
       /* Removed Time Separator - not used */
