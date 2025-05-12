@@ -2,8 +2,8 @@
  * SAJ H2 Inverter Card
  * Custom card for Home Assistant to control SAJ H2 Inverter charging and discharging settings
  * 
- * @author stanu74 13/30
- * @version 1.0.4
+ * @author stanu74 
+ * @version 1.0.3
  */
 
 class SajH2InverterCard extends HTMLElement {
