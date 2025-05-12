@@ -2,7 +2,7 @@
  * SAJ H2 Inverter Card
  * Custom card for Home Assistant to control SAJ H2 Inverter charging and discharging settings
  * 
- * @author stanus74
+ * @author stanu74 
  * @version 1.0.3
  */
 
@@ -31,16 +31,15 @@ class SajH2InverterCard extends HTMLElement {
     };
   }
 
-  constructor() {
+   constructor() {
     super();
-    // Initialize _entities with a deep copy of DEFAULT_ENTITIES.
-    // This ensures that any runtime modifications to this._entities 
-    // do not affect other instances or the static default values.
     this._entities = JSON.parse(JSON.stringify(SajH2InverterCard.DEFAULT_ENTITIES));
-    this._mode = 'both'; // Default mode: both charging and discharging
+    this._mode = 'both';
     this._hass = null;
     this._debug = false;
+    // Removed debounce timer
   }
+
 
   // Card configuration
   setConfig(config) {
@@ -72,36 +71,151 @@ class SajH2InverterCard extends HTMLElement {
       this._renderCard();
     }
   }
+  
+  
+
+
 
   // Handle updates when Home Assistant state changes
   set hass(hass) {
-    this._hass = hass;
-    this._renderCard();
+    // Check if any relevant states have changed before triggering a render
+    if (this._shouldUpdate(hass)) {
+      this._hass = hass;
+      this._renderCard();
+    } else {
+      // Still update internal hass object without rendering
+      this._hass = hass;
+    }
   }
 
-  // Render the card
+  // Helper to check if we should update the card
+  _shouldUpdate(newHass) {
+    if (!this._hass) return true; // Always update if no previous state
+    
+    const relevantEntities = [
+      // Charging entities
+      this._entities.chargeStart,
+      this._entities.chargeEnd,
+      this._entities.chargeDayMask,
+      this._entities.chargePower,
+      this._entities.chargingSwitch,
+      // Discharging entities
+      this._entities.timeEnable,
+      this._entities.dischargingSwitch,
+      // Add all discharge slot entities
+      ...this._entities.dischargeSlots.flatMap(slot => [
+        slot.startTime,
+        slot.endTime,
+        slot.power,
+        slot.dayMask
+      ])
+    ];
+
+    // Check if any relevant entity has changed
+    return relevantEntities.some(entityId => {
+      const oldState = this._hass.states[entityId];
+      const newState = newHass.states[entityId];
+      
+      if (!oldState || !newState) return true;
+      
+      // Compare state and attributes that matter
+      return oldState.state !== newState.state || 
+             oldState.attributes?.pending_write !== newState.attributes?.pending_write;
+    });
+  }
+
+   // Render the card content
   _renderCard() {
-    if (!this._hass) {
-      return;
+    if (!this._hass) return;
+
+    // --- Save Focus and Interaction State ---
+    const activeElement = document.activeElement;
+    const isWithinCard = activeElement && this._content?.contains(activeElement);
+    
+    // Skip rendering if user is interacting with time or number inputs
+    if (isWithinCard && 
+        activeElement.tagName === 'INPUT' && 
+        (activeElement.type === 'time' || activeElement.type === 'number') &&
+        activeElement.closest('.time-input-container')) {
+        return;
     }
 
+    // Store focus state for restoration
+    let focusState = null;
+    if (isWithinCard && activeElement.tagName === 'INPUT') {
+        focusState = {
+            id: activeElement.id,
+            type: activeElement.type,
+            value: activeElement.type === 'checkbox' ? activeElement.checked : activeElement.value,
+            selectionStart: null,
+            selectionEnd: null
+        };
+        
+        try {
+            focusState.selectionStart = activeElement.selectionStart;
+            focusState.selectionEnd = activeElement.selectionEnd;
+        } catch (e) { /* Ignore selection errors for unsupported input types */ }
+    }
+
+    // Generate card content
     let cardContent = '<ha-card><div class="card-content">';
     
-    // Render charging section if mode is 'charge' or 'both'
     if (this._mode === 'charge' || this._mode === 'both') {
-      cardContent += this._renderChargingSection();
+        cardContent += this._renderChargingSection();
     }
     
-    // Render discharging section if mode is 'discharge' or 'both'
     if (this._mode === 'discharge' || this._mode === 'both') {
-      cardContent += this._renderDischargingSection();
+        cardContent += this._renderDischargingSection();
     }
     
     cardContent += '</div></ha-card>';
-    
+
+    // Save scroll position
+    const scrollPosition = this._content.scrollTop;
+
+    // Update content
     this._content.innerHTML = cardContent;
-    this._addEventListeners();
-  }
+
+    // Restore scroll position
+    this._content.scrollTop = scrollPosition;
+
+    // Restore focus state if needed
+    if (focusState) {
+        requestAnimationFrame(() => {
+            const elementToRestore = this._content.querySelector(`#${focusState.id}`);
+            if (elementToRestore && this.isConnected && this._content.contains(elementToRestore)) {
+                // Restore value
+                if (focusState.type === 'checkbox') {
+                    elementToRestore.checked = focusState.value;
+                } else {
+                    elementToRestore.value = focusState.value;
+                }
+
+                // Restore focus
+                elementToRestore.focus();
+
+                // Restore selection if applicable
+                if (focusState.selectionStart !== null && 
+                    focusState.selectionEnd !== null && 
+                    typeof elementToRestore.setSelectionRange === 'function') {
+                    try {
+                        elementToRestore.setSelectionRange(
+                            focusState.selectionStart,
+                            focusState.selectionEnd
+                        );
+                    } catch (e) { /* Ignore selection errors */ }
+                }
+            }
+        });
+    }
+  
+  // Restore scroll position (optional)
+  // this.scrollTop = scrollY;
+
+  // Add event listeners AFTER updating innerHTML and restoring focus
+  this._addEventListeners();
+}
+
 
   // Render the charging section
   _renderChargingSection() {
@@ -297,8 +411,11 @@ class SajH2InverterCard extends HTMLElement {
     // Power slider
     const powerSlider = q('#charge-power');
     if (powerSlider) {
+      // Update display during interaction
       powerSlider.addEventListener('input', e => q('.power-value').textContent = `${e.target.value}%`);
+      // Set state only when interaction ends
       powerSlider.addEventListener('change', e => this._setEntityValue(this._entities.chargePower, parseInt(e.target.value), 'number'));
+      // Removed interaction flag listeners
     }
 
     // Day checkboxes
@@ -372,17 +489,19 @@ class SajH2InverterCard extends HTMLElement {
       // Power slider
       const powerSlider = q(`#slot-${index}-power`);
       if (powerSlider) {
+        // Update display during interaction
         powerSlider.addEventListener('input', e => {
           const powerValue = q(`.discharge-slot:nth-child(${index + 1}) .power-value`);
           if (powerValue) {
             powerValue.textContent = `${e.target.value}%`;
           }
         });
-        
+        // Set state only when interaction ends
         powerSlider.addEventListener('change', e => {
           const value = parseInt(e.target.value);
           this._setEntityValue(slot.power, value, 'number');
         });
+        // Removed interaction flag listeners
       }
       
       // Day checkboxes
@@ -419,19 +538,22 @@ class SajH2InverterCard extends HTMLElement {
   _renderTimeSelects(prefix, startTime, endTime, powerValue = null) {
     const start = startTime || '00:00';
     const end = endTime || '00:00';
-    
+
     return `
       <div class="time-box-container">
         <div class="time-box start-time">
           <div class="time-box-label">Start</div>
           <div class="time-input-container">
             <input type="time" id="${prefix}-start-time" class="time-input" value="${start}" step="300" />
+           
           </div>
         </div>
         <div class="time-box end-time">
           <div class="time-box-label">End</div>
           <div class="time-input-container">
-            <input type="time" id="${prefix}-end-time" class="time-input" value="${end}" step="300" />
+             <input type="time" id="${prefix}-end-time" class="time-input" value="${end}" step="300" />
+           
+            
           </div>
         </div>
         <div class="time-box power-time">
@@ -476,52 +598,45 @@ class SajH2InverterCard extends HTMLElement {
       </div>
     `;
   }
+  
+  _setupDayListeners(prefix, dayMaskEntity) {
+  const q = id => this._content.querySelector(id);
+  ['mo','tu','we','th','fr','sa','su'].forEach(day => {
+    q(`#${prefix}-day-${day}`)?.addEventListener('change', () => {
+      const days = {};
+      ['mo','tu','we','th','fr','sa','su'].forEach((d, i) => {
+        days[Object.keys(this._getDaysFromMask(0))[i]] = q(`#${prefix}-day-${d}`)?.checked || false;
+      });
+      this._setEntityValue(dayMaskEntity, this._calculateDaymask(days), 'number');
+    });
+  });
+}
+
+  
+  
 
   // Simple time listeners for visible inputs
-  _setupTimeListeners(prefix, startEntity, endEntity) {
-    const q = id => this._content.querySelector(id);
-    
-    // Helper function to setup listener for a time input
-    const setupInputListener = (inputId, entity) => {
-      const inputElement = q(`#${inputId}`);
-      if (inputElement) {
-        // Handle value changes
-        inputElement.addEventListener('change', (event) => {
-          this._setEntityValue(entity, event.target.value);
-        });
+_setupTimeListeners(prefix, startEntity, endEntity) {
+  const q = id => this._content.querySelector(id);
 
-        // Handle click on the container to open the picker
-        const container = inputElement.closest('.time-input-container');
-        if (container) {
-          container.addEventListener('click', () => {
-            if (typeof inputElement.showPicker === 'function') {
-              inputElement.showPicker();
-            }
-          });
-        }
-      }
-    };
-    
-    // Setup start time input
-    setupInputListener(`${prefix}-start-time`, startEntity);
-    
-    // Setup end time input
-    setupInputListener(`${prefix}-end-time`, endEntity);
-  }
+  const setupInputListener = (inputId, entity) => {
+    const inputElement = q(`#${inputId}`);
+    if (!inputElement) return;
 
-  _setupDayListeners(prefix, dayMaskEntity) {
-    const q = id => this._content.querySelector(id);
-    ['mo','tu','we','th','fr','sa','su'].forEach(day => {
-      q(`#${prefix}-day-${day}`)?.addEventListener('change', () => {
-        const days = {};
-        ['mo','tu','we','th','fr','sa','su'].forEach((d, i) => {
-          days[Object.keys(this._getDaysFromMask(0))[i]] = q(`#${prefix}-day-${d}`)?.checked || false;
-        });
-        this._setEntityValue(dayMaskEntity, this._calculateDaymask(days), 'number');
-      });
+    // Removed interaction flag listeners (focus, blur, click)
+
+    // Set state on change
+    inputElement.addEventListener('change', (event) => {
+      this._setEntityValue(entity, event.target.value);
     });
-  }
 
+  };
+
+  setupInputListener(`${prefix}-start-time`, startEntity);
+  setupInputListener(`${prefix}-end-time`, endEntity);
+}
+
+  
   // Calculate daymask from selected days
   _calculateDaymask(days) {
     return ['monday','tuesday','wednesday','thursday','friday','saturday','sunday']
@@ -579,19 +694,36 @@ class SajH2InverterCard extends HTMLElement {
       .time-box-label { font-size: 0.9em; font-weight: 500; margin-bottom: 6px; color: var(--secondary-text-color); text-transform: uppercase; letter-spacing: 0.5px; }
       /* Time input wrapper */
       /* Time input container */
-      .time-input-container {
-        width: 100%;
+      
+     .time-input-container {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        border: 1px solid var(--input-ink-color, var(--divider-color));
+        border-radius: 8px;
+        padding: 4px 6px;
+        background-color: var(--input-fill-color, var(--card-background-color));
+      }
+      
+      .time-picker-button {
+        background: none;
+        border: none;
+        padding: 0 6px;
+        color: var(--primary-color);
+        cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        background-color: var(--input-fill-color, var(--card-background-color));
-        border-radius: 8px;
-        border: 1px solid var(--input-ink-color, var(--divider-color));
-        padding: 0;
-        overflow: hidden;
+        transition: transform 0.1s ease;
+        font-size: 1.5em;
       }
+
+      .time-picker-button:hover {
+        transform: scale(1.2);
+      }
+
       
-      /* Time input styling */
       .time-input {
         width: 100%;
         padding: 10px;
@@ -601,8 +733,6 @@ class SajH2InverterCard extends HTMLElement {
         font-size: 1.15em;
         font-weight: 500;
         text-align: center;
-        cursor: pointer;
-        /* Support for dark mode */
         color-scheme: light dark;
       }
       
