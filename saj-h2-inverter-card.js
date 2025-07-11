@@ -7,7 +7,7 @@
  * - Protects specific input interactions (time, range) from disruptive re-renders.
  *
  * @author stanu74 
- * @version 1.1.0
+ * @version 1.1.1
  */
 
 class SajH2InverterCard extends HTMLElement {
