@@ -275,7 +275,7 @@ class SajH2InverterCard extends HTMLElement {
               ${this._renderTimeSelects('charge', chargeStart, chargeEnd, chargePower, pendingWrite)}
             </div>
             <div class="slider-container">
-              <input type="range" id="charge-power" class="power-slider" min="0" max="25" step="1" value="${chargePower}" ${pendingWrite ? 'disabled' : ''} />
+              <input type="range" id="charge-power" class="power-slider" min="0" max="25" step="1" value="${chargePower}" ?disabled=${pendingWrite} />
             </div>
           </div>
         </div>
@@ -371,7 +371,7 @@ class SajH2InverterCard extends HTMLElement {
       <div class="discharge-slot ${slot.enabled ? 'enabled' : 'disabled'} ${parentPendingWrite || timeEnablePending ? 'pending' : ''}">
         <div class="slot-header">
           <label class="slot-checkbox">
-            <input type="checkbox" id="slot-${slot.index}-enabled" ${slot.enabled ? 'checked' : ''} ${checkboxDisabled ? 'disabled' : ''} />
+            <input type="checkbox" id="slot-${slot.index}-enabled" ${slot.enabled ? 'checked' : ''} ?disabled=${checkboxDisabled} />
             <span>Slot ${slot.index+1}</span>
           </label>
         </div>
@@ -381,7 +381,7 @@ class SajH2InverterCard extends HTMLElement {
               ${this._renderTimeSelects(`slot-${slot.index}`, slot.startTime, slot.endTime, slot.power, contentDisabled)}
             </div>
             <div class="slider-container">
-              <input type="range" id="slot-${slot.index}-power" class="power-slider" min="0" max="100" step="1" value="${slot.power}" ${contentDisabled ? 'disabled' : ''} />
+              <input type="range" id="slot-${slot.index}-power" class="power-slider" min="0" max="100" step="1" value="${slot.power}" ?disabled=${contentDisabled} />
             </div>
           </div>
           <div class="days-select">
@@ -402,13 +402,13 @@ class SajH2InverterCard extends HTMLElement {
       <div class="time-box start-time">
         <div class="time-box-label">Start</div>
         <div class="time-input-container">
-          <input type="time" id="${prefix}-start-time" value="${validStartTime}" step="300" class="time-input" ${disabled ? 'disabled' : ''} />
+          <input type="time" id="${prefix}-start-time" value="${validStartTime}" step="300" class="time-input" ?disabled=${disabled} />
         </div>
       </div>
       <div class="time-box end-time">
         <div class="time-box-label">End</div>
         <div class="time-input-container">
-          <input type="time" id="${prefix}-end-time" value="${validEndTime}" step="300" class="time-input" ${disabled ? 'disabled' : ''} />
+          <input type="time" id="${prefix}-end-time" value="${validEndTime}" step="300" class="time-input" ?disabled=${disabled} />
         </div>
       </div>
       <div class="time-box power-time">
@@ -425,7 +425,7 @@ class SajH2InverterCard extends HTMLElement {
     const days = this._getDaysFromMask(mask);
     return ['Mo','Tu','We','Th','Fr','Sa','Su'].map((dayAbbr, i) => `
       <label class="day-checkbox ${disabled ? 'disabled' : ''}">
-        <input type="checkbox" id="${prefix}-day-${dayAbbr.toLowerCase()}" data-day-index="${i}" ${days[['monday','tuesday','wednesday','thursday','friday','saturday','sunday'][i]] ? 'checked' : ''} ${disabled ? 'disabled' : ''} />
+        <input type="checkbox" id="${prefix}-day-${dayAbbr.toLowerCase()}" data-day-index="${i}" ${days[['monday','tuesday','wednesday','thursday','friday','saturday','sunday'][i]] ? 'checked' : ''} ?disabled=${disabled} />
         <span>${dayAbbr}</span>
       </label>`).join('');
   }
@@ -437,7 +437,7 @@ class SajH2InverterCard extends HTMLElement {
     // Button text indicates the action clicking will take
     const actionText = isEnabled ? `Disable ${typeCapitalized}` : `Enable ${typeCapitalized}`;
     // Button HTML: Disable it when pending.
-    const button = `<button id="${type}-toggle" class="control-button ${isEnabled ? 'active' : ''}" ${isPending ? 'disabled' : ''}>${actionText}</button>`;
+    const button = `<button id="${type}-toggle" class="control-button ${isEnabled ? 'active' : ''}" ?disabled=${isPending}>${actionText}</button>`;
 
     // Status Display HTML: Show specific "Wait..." message ONLY when pending.
     let statusDisplayHtml;

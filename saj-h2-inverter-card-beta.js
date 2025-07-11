@@ -846,8 +846,8 @@ class SajH2InverterCard extends HTMLElement {
       }
 
       /* Days Selection */
-      .days-selection, .days-select { display: flex; flex-wrap: wrap; gap: 10px 10px; margin-bottom: 12px; justify-content: flex-start; }
-      .day-checkbox { display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 4px 8px; border-radius: 12px; transition: background-color 0.2s ease; }
+      .days-selection, .days-select { display: flex; flex-wrap: wrap; margin-bottom: 12px; justify-content: flex-start; }
+      .day-checkbox { display: flex; align-items: center; cursor: pointer; padding: 4px 8px; border-radius: 12px; transition: background-color 0.2s ease; }
       .day-checkbox:not(.disabled):hover { background-color: rgba(var(--primary-color-rgb), 0.1); }
       .day-checkbox span { font-size: 1em; user-select: none;}
       .day-checkbox input[type="checkbox"] { width: 18px; height: 18px; margin-right: 4px; cursor: pointer; accent-color: var(--primary-color); }
