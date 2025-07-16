@@ -17,7 +17,8 @@ https://github.com/stanus74/home-assistant-saj-h2-modbus
 
 ## Installation
 
-1. Copy the file `saj-h2-charge-card.js` to the directory `/config/www/` of your Home Assistant installation.
+1. Upload the file `saj-h2-charge-card.js` (https://github.com/stanus74/saj-h2-lovelace-card/blob/main/saj-h2-inverter-card.js) to the directory `/config/www/` of your Home Assistant installation.
+   Use HA File Editor. If you dont have, first install the Editor https://youtu.be/lKDcnfaX7O8?si=2V6D7CwBCwCr5QsI&t=195
 
 2. Add the resource to your Lovelace configuration:
 
