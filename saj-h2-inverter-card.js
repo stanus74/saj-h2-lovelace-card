@@ -7,7 +7,7 @@
  * - Protects specific input interactions (time, range) from disruptive re-renders.
  *
  * @author stanu74 
- * @version 1.1.1
+ * @version 1.1.2
  */
 
 class SajH2InverterCard extends HTMLElement {
@@ -23,7 +23,7 @@ class SajH2InverterCard extends HTMLElement {
 
       // Discharging entities
       dischargeSlots: [
-        { startTime: 'text.saj_discharge_start_time_time', endTime: 'text.saj_discharge_end_time_time', power: 'number.saj_discharge_power_percent_input',     dayMask: 'number.saj_discharge_day_mask_input' },
+        { startTime: 'text.saj_discharge1_start_time_time', endTime: 'text.saj_discharge1_end_time_time', power: 'number.saj_discharge1_power_percent_input', dayMask: 'number.saj_discharge1_day_mask_input' },
         { startTime: 'text.saj_discharge2_start_time_time', endTime: 'text.saj_discharge2_end_time_time', power: 'number.saj_discharge2_power_percent_input', dayMask: 'number.saj_discharge2_day_mask_input' },
         { startTime: 'text.saj_discharge3_start_time_time', endTime: 'text.saj_discharge3_end_time_time', power: 'number.saj_discharge3_power_percent_input', dayMask: 'number.saj_discharge3_day_mask_input' },
         { startTime: 'text.saj_discharge4_start_time_time', endTime: 'text.saj_discharge4_end_time_time', power: 'number.saj_discharge4_power_percent_input', dayMask: 'number.saj_discharge4_day_mask_input' },
