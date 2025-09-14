@@ -7,7 +7,7 @@
  * - Protects specific input interactions (time, range) from disruptive re-renders.
  *
  * @author stanu74 
- * @version 1.1.2
+ * @version 1.1.3
  */
 
 class SajH2InverterCard extends HTMLElement {
@@ -38,8 +38,14 @@ class SajH2InverterCard extends HTMLElement {
 
   constructor() {
     super();
+
+    console.log(`[SAJ H2 Inverter Card] Version: 1.1.3`);
+  
+    
+    
     this.attachShadow({ mode: 'open' }); // Attach Shadow DOM
 
+    
     // Initialize properties
     this._entities = JSON.parse(JSON.stringify(SajH2InverterCard.DEFAULT_ENTITIES));
     this._mode = 'both';
