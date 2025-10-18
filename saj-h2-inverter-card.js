@@ -7,7 +7,7 @@
  * - Protects specific input interactions (time, range) from disruptive re-renders.
  *
  * @author stanu74 
- * @version 1.1.3
+ * @version 1.1.4
  */
 
 class SajH2InverterCard extends HTMLElement {
@@ -39,7 +39,7 @@ class SajH2InverterCard extends HTMLElement {
   constructor() {
     super();
 
-    console.log(`[SAJ H2 Inverter Card] Version: 1.1.3`);
+    console.log(`[SAJ H2 Inverter Card] Version: 1.1.4`);
   
     
     
@@ -51,6 +51,7 @@ class SajH2InverterCard extends HTMLElement {
     this._mode = 'both';
     this._hass = null;
     this._debug = false;
+    this._sliderTimeouts = {}; // Debouncing-Timeouts speichern
   }
 
   // Called by Lovelace when configuration is set
@@ -273,7 +274,7 @@ class SajH2InverterCard extends HTMLElement {
 
     const html = `
       <div class="section charging-section">
-        <div class="section-header">Charging Settings (Version 1.1.3)</div>
+        <div class="section-header">Charging Settings (Version 1.1.4)</div>
         <div class="subsection">
           <div class="subsection-header">Charging Time & Power</div>
           <div class="time-power-container">
@@ -395,6 +396,31 @@ class SajH2InverterCard extends HTMLElement {
           </div>
         </div>
       </div>`;
+  }
+
+  // Debounce Slider-Änderungen (verzögert Service-Call)
+  // Verhindert zu viele Modbus-Calls bei schnellen Slider-Bewegungen
+  _debouncedSliderChange(sliderId, entityId, value, delay = 800) {
+    // Alten Timer löschen, falls noch aktiv
+    if (this._sliderTimeouts[sliderId]) {
+      clearTimeout(this._sliderTimeouts[sliderId]);
+      if (this._debug) {
+        console.log(`[saj-h2-inverter-card] Debounce Timer abgebrochen für ${sliderId}`);
+      }
+    }
+
+    // Neuen Timer starten
+    this._sliderTimeouts[sliderId] = setTimeout(() => {
+      if (this._debug) {
+        console.log(`[saj-h2-inverter-card] Debounce abgelaufen: Sende ${sliderId} = ${value}`);
+      }
+      this._setEntityValue(entityId, parseInt(value, 10), 'number');
+      delete this._sliderTimeouts[sliderId];
+    }, delay);
+
+    if (this._debug) {
+      console.log(`[saj-h2-inverter-card] Debounce Timer gestartet für ${sliderId} (${delay}ms)`);
+    }
   }
 
   // Render the time input elements
