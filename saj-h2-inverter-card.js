@@ -7,7 +7,7 @@
  * - Protects specific input interactions (time, range) from disruptive re-renders.
  *
  * @author stanu74 
- * @version 1.1.4
+ * @version 1.1.5
  */
 
 class SajH2InverterCard extends HTMLElement {
@@ -39,12 +39,9 @@ class SajH2InverterCard extends HTMLElement {
   constructor() {
     super();
 
-    console.log(`[SAJ H2 Inverter Card] Version: 1.1.4`);
-  
-    
+    console.log(`[SAJ H2 Inverter Card] Version: 1.1.5`);
     
     this.attachShadow({ mode: 'open' }); // Attach Shadow DOM
-
     
     // Initialize properties
     this._entities = JSON.parse(JSON.stringify(SajH2InverterCard.DEFAULT_ENTITIES));
@@ -52,6 +49,7 @@ class SajH2InverterCard extends HTMLElement {
     this._hass = null;
     this._debug = false;
     this._sliderTimeouts = {}; // Debouncing-Timeouts speichern
+    this._showAllSlots = false; // State für "Show more Slots" Button
   }
 
   // Called by Lovelace when configuration is set
@@ -90,16 +88,10 @@ class SajH2InverterCard extends HTMLElement {
     // Update internal state AFTER calculations based on the previous state
     this._hass = hass;
 
-    // Debugging logs (optional)
-    // if (shouldUpdate) console.log(`[saj-card] set hass: shouldUpdate=${shouldUpdate}, userInteracting=${userInteracting}`);
-
     // Render logic: Render if shadowRoot exists AND (update needed OR initial render)
     // AND user is NOT interacting with protected elements (time, range)
     if (this.shadowRoot && (shouldUpdate || !this.shadowRoot.innerHTML) && !userInteracting) {
-        // if (shouldUpdate) console.log("[saj-card] Rendering card..."); // Debug
         this._renderCard();
-    } else {
-        // if (shouldUpdate && userInteracting) console.log("[saj-card] Skipping render due to user interaction."); // Debug
     }
   }
 
@@ -113,7 +105,6 @@ class SajH2InverterCard extends HTMLElement {
     if (activeElement.tagName === 'INPUT') {
       const type = activeElement.type.toLowerCase();
       if (type === 'time' || type === 'range') {
-        // console.log("[saj-card] Interaction detected:", activeElement.tagName, activeElement.type); // Debugging
         return true; // Currently interacting with time or range input
       }
     }
@@ -153,20 +144,14 @@ class SajH2InverterCard extends HTMLElement {
         // Check if state object itself is different (covers new/removed entities)
         if (oldState !== newState) {
             // Specifically check if pending_write status changed
-            // This handles undefined -> true and true -> undefined transitions correctly
             if (oldState?.attributes?.pending_write !== newState?.attributes?.pending_write) {
-                // console.log(`[saj-card] _shouldUpdate: pending_write changed for ${id}`); // Debug
                 return true;
             }
              // Check if the state value itself changed
              if (oldState?.state !== newState?.state) {
-                 // console.log(`[saj-card] _shouldUpdate: state changed for ${id}`); // Debug
                  return true;
              }
-             // If only attributes other than pending_write changed, we might not need an update,
-             // but for simplicity, let's update if the state object differs significantly.
-             // A full object comparison can be heavy; comparing state and pending_write covers most cases.
-             // If entity just appeared/disappeared update is needed.
+             // If entity just appeared/disappeared update is needed
              if(!oldState || !newState) return true;
         }
     }
@@ -181,7 +166,6 @@ class SajH2InverterCard extends HTMLElement {
 
     // Final check before manipulating DOM
     if (this._isUserInteracting()) {
-         // console.log("[saj-card] Final interaction check prevented render."); // Debug
          return;
     }
 
@@ -274,7 +258,7 @@ class SajH2InverterCard extends HTMLElement {
 
     const html = `
       <div class="section charging-section">
-        <div class="section-header">Charging Settings (Version 1.1.4)</div>
+        <div class="section-header">Charging Settings (Version 1.1.7)</div>
         <div class="subsection">
           <div class="subsection-header">Charging Time & Power</div>
           <div class="time-power-container">
@@ -340,23 +324,41 @@ class SajH2InverterCard extends HTMLElement {
       };
     });
 
-    let slotHtml = slots.map(s => this._renderDischargeSlot(s, pendingWrite)).join('');
+    // Slot 1 immer anzeigen, Slots 2-7 nur wenn _showAllSlots true ist
+    const visibleSlots = this._showAllSlots ? slots : slots.slice(0, 1);
+    const hiddenSlotsCount = slots.length - visibleSlots.length;
+    
+    let slotHtml = visibleSlots.map(s => this._renderDischargeSlot(s, pendingWrite)).join('');
     if (slotErrors.length > 0) {
         slotHtml = `<ha-alert alert-type="warning" title="Discharge Slot Entity Errors">${slotErrors.join('; ')}</ha-alert>` + slotHtml;
     }
+
+    // "Show more Slots" Button nur anzeigen wenn Slots versteckt sind
+    const showMoreButton = hiddenSlotsCount > 0 ? `
+      <button id="show-more-slots" class="show-more-button">
+        Show ${hiddenSlotsCount} more Slot${hiddenSlotsCount > 1 ? 's' : ''}
+      </button>` : '';
+    
+    // "Show less Slots" Button nur anzeigen wenn alle Slots sichtbar sind
+    const showLessButton = this._showAllSlots ? `
+      <button id="show-less-slots" class="show-more-button">
+        Show less Slots
+      </button>` : '';
 
     const html = `
       <div class="section discharging-section">
         <div class="section-header">Discharging Settings</div>
         <div class="subsection">
-          <div class="subsection-header">Discharging Control</div>
-          ${this._renderStatusButton(dischargingEnabled, pendingWrite, 'discharging')}
-        </div>
-        <div class="subsection">
           <div class="subsection-header">Discharge Time Slots</div>
           <div class="discharge-slots">
             ${slotHtml}
           </div>
+          ${showMoreButton}
+          ${showLessButton}
+        </div>
+        <div class="subsection">
+          <div class="subsection-header">Discharging Control</div>
+          ${this._renderStatusButton(dischargingEnabled, pendingWrite, 'discharging')}
         </div>
       </div>`;
       return { html: html, error: false };
@@ -489,7 +491,6 @@ class SajH2InverterCard extends HTMLElement {
     return `${button}${statusDisplayHtml}`;
   }
 
-
   // Add all event listeners after rendering
   _addEventListeners() {
     if (!this.shadowRoot) return;
@@ -498,7 +499,6 @@ class SajH2InverterCard extends HTMLElement {
   }
 
   // Add listeners for the charging section
-  // This version only calls the service, no optimistic UI updates.
   _addChargingEventListeners() {
     const q = sel => this.shadowRoot.querySelector(sel);
     const chargeSection = q('.charging-section');
@@ -545,16 +545,35 @@ class SajH2InverterCard extends HTMLElement {
   }
 
   // Add listeners for the discharging section
-  // This version only calls the service, no optimistic UI updates.
   _addDischargingEventListeners() {
     const q = sel => this.shadowRoot.querySelector(sel);
     const dischargeSection = q('.discharging-section');
     if (!dischargeSection) return;
 
+    // "Show more Slots" Button
+    const showMoreBtn = q('#show-more-slots');
+    if (showMoreBtn && !showMoreBtn.hasAttribute('data-listener-added')) {
+      showMoreBtn.setAttribute('data-listener-added', 'true');
+      showMoreBtn.addEventListener('click', () => {
+        this._showAllSlots = true;
+        this._renderCard();
+      });
+    }
+
+    // "Show less Slots" Button
+    const showLessBtn = q('#show-less-slots');
+    if (showLessBtn && !showLessBtn.hasAttribute('data-listener-added')) {
+      showLessBtn.setAttribute('data-listener-added', 'true');
+      showLessBtn.addEventListener('click', () => {
+        this._showAllSlots = false;
+        this._renderCard();
+      });
+    }
+
     // Discharge Toggle Button
     const toggle = q('#discharging-toggle');
     if (toggle && !toggle.hasAttribute('data-listener-added')) {
-       toggle.setAttribute('data-listener-added', 'true');
+      toggle.setAttribute('data-listener-added', 'true');
       toggle.addEventListener('click', () => {
         const entityId = this._entities.dischargingSwitch;
         const currentState = this._hass.states[entityId]?.state;
@@ -563,9 +582,14 @@ class SajH2InverterCard extends HTMLElement {
             return;
         }
         const newState = currentState === 'on' ? 'off' : 'on';
-        // NO OPTIMISTIC UI UPDATE HERE - just call the service
+        
+        // First turn on/off the switch
         this._hass.callService('switch', `turn_${newState}`, { entity_id: entityId });
-        // UI update relies entirely on receiving new hass state with pending_write
+        
+        // When turning ON, send values for all enabled slots
+        if (newState === 'on') {
+          this._sendEnabledSlotValues();
+        }
       });
     }
 
@@ -622,6 +646,60 @@ class SajH2InverterCard extends HTMLElement {
       // Slot Day Checkboxes
       this._setupDayListeners(`slot-${i}`, slotConfig.dayMask);
     });
+  }
+
+  // Send values for enabled slots to ensure proper configuration
+  _sendEnabledSlotValues() {
+    try {
+      // Get the currently enabled slots
+      const timeEnableEntityId = this._entities.timeEnable;
+      const timeEnableState = this._hass.states[timeEnableEntityId];
+      
+      if (!timeEnableState) {
+        console.warn(`[saj-h2-inverter-card] Entity ${timeEnableEntityId} not found in hass state.`);
+        return;
+      }
+      
+      const enabledMask = parseInt(timeEnableState.state || '0');
+      if (!enabledMask) {
+        console.info('[saj-h2-inverter-card] No discharge slots enabled. Nothing to send.');
+        return;
+      }
+      
+      console.info(`[saj-h2-inverter-card] Sending values for enabled discharge slots: ${enabledMask.toString(2)}`);
+      
+      // For each enabled slot, send its current configuration values
+      (this._entities.dischargeSlots || []).forEach((slotConfig, i) => {
+        // Check if this slot bit is set in the mask
+        if ((enabledMask & (1 << i)) && slotConfig) {
+          const slotNumber = i + 1;
+          
+          // Get current values for this slot
+          const startTime = this._hass.states[slotConfig.startTime]?.state || '00:00';
+          const endTime = this._hass.states[slotConfig.endTime]?.state || '00:00';
+          const power = parseInt(this._hass.states[slotConfig.power]?.state || '5');
+          const dayMask = parseInt(this._hass.states[slotConfig.dayMask]?.state || '127'); // Default all days
+          
+          console.info(`[saj-h2-inverter-card] Slot ${slotNumber}: sending ${startTime}-${endTime}, ${power}%, mask=${dayMask}`);
+          
+          // Send values to Home Assistant
+          if (slotConfig.startTime) {
+            this._setEntityValue(slotConfig.startTime, startTime, 'text');
+          }
+          if (slotConfig.endTime) {
+            this._setEntityValue(slotConfig.endTime, endTime, 'text');
+          }
+          if (slotConfig.power) {
+            this._setEntityValue(slotConfig.power, power, 'number');
+          }
+          if (slotConfig.dayMask) {
+            this._setEntityValue(slotConfig.dayMask, dayMask, 'number');
+          }
+        }
+      });
+    } catch (error) {
+      console.error('[saj-h2-inverter-card] Error in _sendEnabledSlotValues:', error);
+    }
   }
 
   // Helper to setup time input listeners
@@ -708,7 +786,6 @@ class SajH2InverterCard extends HTMLElement {
     return dayKeys.reduce((sum, day, i) => sum + ((days && days[day]) ? (1 << i) : 0), 0);
   }
 
-
   // Get day selection object from bitmask
   _getDaysFromMask(mask) {
     const days = {};
@@ -788,10 +865,8 @@ class SajH2InverterCard extends HTMLElement {
       return output;
   }
 
-
-  // Static method to return the CSS styles
+  // Return the CSS styles
   _getStyles() {
-    // CSS styles are encapsulated by Shadow DOM
     return `
       :host {
         display: block;
@@ -849,7 +924,7 @@ class SajH2InverterCard extends HTMLElement {
       }
       .time-input-container {
         display: flex; align-items: center; border: 1px solid var(--input-ink-color, var(--divider-color));
-        border-radius: 8px; padding: 0 6px; background-color: var(--input-fill-color, var(--card-background-color));
+        border-radius: 8px; padding: 0 6px; background-color: var(--input-fill-color, var,--card-background-color));
         width: 100%; min-height: 40px; box-sizing: border-box; transition: background-color 0.2s ease, border-color 0.2s ease;
       }
       .time-input-container:hover:not(:has(input:disabled)) { border-color: var(--input-hover-ink-color, var(--primary-color)); }
@@ -866,7 +941,7 @@ class SajH2InverterCard extends HTMLElement {
       .power-value {
         display: inline-flex; align-items: center; justify-content: center; padding: 8px 12px;
         border: 1px solid var(--input-ink-color, var(--divider-color)); border-radius: 8px;
-        background-color: var(--input-fill-color, var(--card-background-color)); font-size: 1.1em; font-weight: 500;
+        background-color: var(--input-fill-color, var,--card-background-color)); font-size: 1.1em; font-weight: 500;
         color: var(--primary-text-color); min-width: 60px; min-height: 40px; box-sizing: border-box; text-align: center;
         transition: background-color 0.2s ease, border-color 0.2s ease;
       }
@@ -874,15 +949,15 @@ class SajH2InverterCard extends HTMLElement {
       .time-power-row:has(input.power-slider:disabled) .power-value /* If sibling slider is disabled */
        {
         background-color: var(--input-disabled-fill-color, rgba(var(--disabled-text-color-rgb), 0.1));
-        border-color: var(--input-disabled-ink-color, var(--divider-color)); color: var(--disabled-text-color);
+        border-color: var(--input-disabled-ink-color, var,--divider-color)); color: var(--disabled-text-color);
       }
 
       /* Days Selection */
-      .days-selection, .days-select { display: flex; flex-wrap: wrap; gap: 10px 10px; margin-bottom: 12px; justify-content: flex-start; }
-      .day-checkbox { display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 4px 8px; border-radius: 12px; transition: background-color 0.2s ease; }
+      .days-selection, .days-select { display: flex; flex-wrap: nowrap; gap: 6px; margin-bottom: 12px; justify-content: space-between; }
+      .day-checkbox { display: flex; align-items: center; gap: 4px; cursor: pointer; padding: 4px 6px; border-radius: 8px; transition: background-color 0.2s ease; flex: 1; min-width: 0; }
       .day-checkbox:not(.disabled):hover { background-color: rgba(var(--primary-color-rgb), 0.1); }
-      .day-checkbox span { font-size: 1em; user-select: none;}
-      .day-checkbox input[type="checkbox"] { width: 18px; height: 18px; margin-right: 4px; cursor: pointer; accent-color: var(--primary-color); }
+      .day-checkbox span { font-size: 0.9em; user-select: none; white-space: nowrap; }
+      .day-checkbox input[type="checkbox"] { width: 16px; height: 16px; margin-right: 2px; cursor: pointer; accent-color: var(--primary-color); flex-shrink: 0; }
       .day-checkbox input[type="checkbox"]:disabled { cursor: not-allowed; accent-color: var(--disabled-text-color); opacity: 0.7; }
       .day-checkbox.disabled { cursor: not-allowed; color: var(--disabled-text-color); opacity: 0.7; }
 
@@ -948,6 +1023,21 @@ class SajH2InverterCard extends HTMLElement {
       .slot-content.visible { max-height: 500px; opacity: 1; }
       .slot-content.hidden { margin-top: 0; }
 
+      /* Show More Slots Button */
+      .show-more-button {
+        width: 100%; padding: 12px; font-size: 1rem; border-radius: 8px;
+        border: 1px solid var(--divider-color); background-color: var(--card-background-color);
+        color: var(--primary-text-color); font-weight: 500; cursor: pointer;
+        margin-top: 12px; transition: all 0.2s ease;
+      }
+      .show-more-button:hover {
+        background-color: var(--secondary-background-color);
+        border-color: var(--primary-color);
+      }
+      .show-more-button:active {
+        transform: scale(0.98);
+      }
+
       /* Responsive adjustments */
       @media (max-width: 450px) {
         .card-content { padding: 12px; }
@@ -959,8 +1049,10 @@ class SajH2InverterCard extends HTMLElement {
         .time-input-container, .power-placeholder, .power-value { min-height: 38px; }
         .power-value { padding: 6px 10px; }
         .time-input { font-size: 1.05em; }
-        .days-selection, .days-select { justify-content: center; gap: 8px 8px; }
-        .day-checkbox span { font-size: 0.95em; }
+        .days-selection, .days-select { gap: 4px; }
+        .day-checkbox { padding: 3px 4px; gap: 3px; }
+        .day-checkbox span { font-size: 0.85em; }
+        .day-checkbox input[type="checkbox"] { width: 14px; height: 14px; }
         .discharge-slot { padding: 12px; width: 100%; }
         .slot-checkbox span { font-size: 1.05em; }
         .control-button { font-size: 1rem; padding: 12px; }
@@ -980,7 +1072,7 @@ if (!window.sajH2CardDefined) {
       name: 'SAJ H2 Inverter Card',
       description: 'Card for controlling SAJ H2 inverter charge/discharge settings.',
       preview: true,
-      documentationURL: 'https://github.com/stanu74/saj-h2-ha-card' // Adjust if needed
+      documentationURL: 'https://github.com/stanu74/saj-h2-ha-card'
     });
     window.sajH2CardDefined = true;
 }
