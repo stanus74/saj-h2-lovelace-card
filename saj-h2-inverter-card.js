@@ -258,7 +258,7 @@ class SajH2InverterCard extends HTMLElement {
 
     const html = `
       <div class="section charging-section">
-        <div class="section-header">Charging Settings (Version 1.1.7)</div>
+        <div class="section-header">Charging Settings (Version 1.1.5)</div>
         <div class="subsection">
           <div class="subsection-header">Charging Time & Power</div>
           <div class="time-power-container">
